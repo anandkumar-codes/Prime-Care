@@ -1,0 +1,23 @@
+{
+  "appId": "com.primecare.hms",
+  "appName": "Prime Care",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#ffffff"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#ffffff",
+      "androidScaleType": "CENTER_INSIDE",
+      "showSpinner": false,
+      "launchFadeOutDuration": 300
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#ffffff",
+      "overlaysWebView": false
+    }
+  }
+}

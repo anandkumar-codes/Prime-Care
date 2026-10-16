@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Orbit Cross mark, the app icon foreground and the native splash icon.
+     A vector, so it stays sharp at every screen density. Drawn on the 100-unit logo grid,
+     scaled into the adaptive icon's 108-unit canvas at the same size as www/app.js uses. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.625"
+        android:scaleY="0.625"
+        android:translateX="22.75"
+        android:translateY="22.75">
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M86.25,33.1A40,40 0,1 1,66.9 13.75"
+            android:strokeWidth="9"
+            android:strokeLineCap="round">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="10"
+                    android:startY="90"
+                    android:endX="90"
+                    android:endY="10">
+                    <item android:offset="0" android:color="#FF0891B2" />
+                    <item android:offset="1" android:color="#FF2563EB" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:fillColor="#FFF59E0B"
+            android:pathData="M72.8,21.7a5.5,5.5 0,1 0,11 0a5.5,5.5 0,1 0,-11 0z" />
+        <path
+            android:fillColor="#FF10B981"
+            android:pathData="M44,29h12a2,2 0,0 1,2 2v11h11a2,2 0,0 1,2 2v12a2,2 0,0 1,-2 2H58v11a2,2 0,0 1,-2 2H44a2,2 0,0 1,-2 -2V58H31a2,2 0,0 1,-2 -2V44a2,2 0,0 1,2 -2h11V31a2,2 0,0 1,2 -2z" />
+    </group>
+</vector>

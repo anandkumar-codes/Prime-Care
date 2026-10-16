@@ -1,0 +1,66 @@
+/* Prime Care: compact home tiles, back arrows, pull-to-refresh and the display-mode switch. */
+
+/* ---------- Home: compact light count tiles and quick actions ---------- */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 20px; }
+.kpi { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 10px 9px; border-radius: 16px; text-align: left; border: 1px solid transparent; transition: transform .15s; }
+.kpi:active { transform: scale(.97); }
+.kpi .ic { width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, .7); margin-bottom: 4px; }
+.kpi .ic svg.i { width: 16px; height: 16px; }
+.kpi b { font-size: 22px; font-weight: 800; line-height: 1.1; color: var(--ink); }
+.kpi small { font-size: 11px; font-weight: 600; color: var(--ink-2); line-height: 1.25; }
+.k-blue { background: #eaf2ff; border-color: #d6e6ff; }
+.k-blue .ic { color: var(--blue); }
+.k-green { background: #e8f8f1; border-color: #cdeedf; }
+.k-green .ic { color: #059669; }
+.k-violet { background: #f1ecff; border-color: #e2d8ff; }
+.k-violet .ic { color: #7c3aed; }
+.k-amber { background: #fff5e0; border-color: #fde7b8; }
+.k-amber .ic { color: #d97706; }
+.qa-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+.qa-tile { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 16px; text-align: left; border: 1px solid transparent; }
+.qa-tile .ic { width: 34px; height: 34px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex: none; background: rgba(255, 255, 255, .75); }
+.qa-tile .ic svg.i { width: 18px; height: 18px; }
+.qa-tile b { display: block; font-size: 13.5px; color: var(--ink); line-height: 1.2; }
+.qa-tile small { display: block; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qa-tile > span:last-child { min-width: 0; }
+.qa-tile.t-blue { background: #eaf2ff; border-color: #d6e6ff; }
+.qa-tile.t-blue .ic { color: var(--blue); }
+.qa-tile.t-green { background: #e8f8f1; border-color: #cdeedf; }
+.qa-tile.t-green .ic { color: #059669; }
+.qa-tile.t-violet { background: #f1ecff; border-color: #e2d8ff; }
+.qa-tile.t-violet .ic { color: #7c3aed; }
+@media (max-width: 340px) { .kpis { grid-template-columns: 1fr 1fr; } }
+[data-theme="neu"] .kpi, [data-theme="neu"] .qa-tile { border: 0; box-shadow: var(--shadow-sm); }
+[data-theme="bento"] .kpi, [data-theme="bento"] .qa-tile { border-radius: 22px; border: 0; }
+
+/* Back arrow on list pages */
+.page-head { align-items: center; }
+.back-btn { width: 36px; height: 36px; border-radius: 11px; margin-right: -2px; background: var(--surface); box-shadow: var(--shadow); flex: none; }
+
+/* Pull-to-refresh indicator */
+#ptr { position: fixed; left: 50%; top: 58px; z-index: 40; width: 38px; height: 38px; margin-top: -38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface); color: var(--blue); box-shadow: var(--shadow-lg); opacity: 0; transform: translate(-50%, 0); transition: transform .3s ease, opacity .3s ease; pointer-events: none; }
+#ptr svg.i { width: 20px; height: 20px; stroke-width: 2.4; }
+#ptr.ready { color: #fff; background: var(--blue); }
+#ptr.spinning svg.i { animation: spin .7s linear infinite; }
+
+/* Light / Dark / System switch */
+.mode-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mode-seg button { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.mode-seg button svg.i { width: 22px; height: 22px; }
+.mode-seg button.on { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+
+/* Square count tiles: big count in the tile's colour at the top, caption along the bottom.
+   Four tiles share a phone's width, so there is no room for an icon beside a 3-digit count. */
+.kpi { aspect-ratio: 1; justify-content: space-between; padding: 10px; gap: 0; }
+.kpi .ic { display: none; }
+.kpi b { font-size: clamp(20px, 6vw, 26px); line-height: 1; }
+.kpi b.long { font-size: clamp(15px, 4.4vw, 19px); }
+.kpi small { font-size: 10.5px; line-height: 1.25; }
+.k-blue b { color: #1d4ed8; }
+.k-green b { color: #047857; }
+.k-violet b { color: #6d28d9; }
+.k-amber b { color: #b45309; }
+html[data-mode="dark"] .k-blue b { color: #93c5fd; }
+html[data-mode="dark"] .k-green b { color: #6ee7b7; }
+html[data-mode="dark"] .k-violet b { color: #c4b5fd; }
+html[data-mode="dark"] .k-amber b { color: #fcd34d; }

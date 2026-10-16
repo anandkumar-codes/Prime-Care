@@ -1,0 +1,11 @@
+# Keep LF line endings in the repository and on every computer (Render runs Linux),
+# except Windows batch files, which need CRLF
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files: never touch line endings
+*.png binary
+*.jpg binary
+*.jar binary
+*.apk binary

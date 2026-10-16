@@ -1,0 +1,255 @@
+/* Prime Care themes.
+   Default is styles.css as-is. Each theme below overrides the design tokens first,
+   then the few components whose look is not driven by tokens.
+   Applied with <html data-theme="neu|flat|material|bento">. */
+
+/* =====================================================================
+   Neumorphism: soft extruded surfaces in one colour, lit from the top-left
+   ===================================================================== */
+html[data-theme="neu"] {
+  --bg: #e4e9f0;
+  --surface: #e4e9f0;
+  --field: #e4e9f0;
+  --line: #d2d9e3;
+  --hi: #ffffff;
+  --lo: #c2cad6;
+  --shadow: 7px 7px 15px var(--lo), -7px -7px 15px var(--hi);
+  --shadow-sm: 4px 4px 9px var(--lo), -4px -4px 9px var(--hi);
+  --inset: inset 4px 4px 8px var(--lo), inset -4px -4px 8px var(--hi);
+  --shadow-lg: 14px 14px 32px #b5bdca, -10px -10px 28px #ffffff;
+  --radius: 22px;
+  --radius-sm: 14px;
+  --accent: #e4e9f0;
+  --accent-shadow: transparent;
+}
+[data-theme="neu"] .topbar, [data-theme="neu"] .tabbar { background: var(--bg); border: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
+[data-theme="neu"] .topbar { box-shadow: 0 6px 14px -6px var(--lo); }
+[data-theme="neu"] .tabbar { box-shadow: 0 -6px 14px -6px var(--lo); }
+[data-theme="neu"] .tab .pill { background: var(--bg); box-shadow: var(--inset); }
+[data-theme="neu"] .ctl, [data-theme="neu"] .search { border: 0; background: var(--bg); box-shadow: var(--inset); }
+[data-theme="neu"] .ctl:focus-within, [data-theme="neu"] .search:focus-within { background: var(--bg); box-shadow: var(--inset), 0 0 0 2px rgba(37, 99, 235, .35); }
+[data-theme="neu"] .field.invalid .ctl { background: var(--bg); box-shadow: var(--inset), 0 0 0 2px rgba(225, 29, 72, .45); }
+[data-theme="neu"] .seg span { border: 0; background: var(--bg); box-shadow: var(--shadow-sm); }
+[data-theme="neu"] .seg input:checked + span { background: var(--bg); box-shadow: var(--inset); color: var(--blue); }
+[data-theme="neu"] .btn { box-shadow: var(--shadow-sm); }
+[data-theme="neu"] .btn:active { box-shadow: var(--inset); transform: none; }
+[data-theme="neu"] .btn.primary { background: var(--bg); color: var(--blue); text-shadow: none; box-shadow: var(--shadow); }
+[data-theme="neu"] .btn.primary:active { box-shadow: var(--inset); }
+[data-theme="neu"] .btn.ghost { border: 0; background: var(--bg); }
+[data-theme="neu"] .btn.soft, [data-theme="neu"] .btn.danger-soft { background: var(--bg); }
+[data-theme="neu"] .btn.danger { background: var(--bg); color: var(--red); }
+[data-theme="neu"] .btn .spin { border-color: rgba(37, 99, 235, .25); border-top-color: var(--blue); }
+[data-theme="neu"] .fab { background: var(--bg); color: var(--blue); box-shadow: var(--shadow); }
+[data-theme="neu"] .fab:active { box-shadow: var(--inset); }
+[data-theme="neu"] .icon-btn { background: var(--bg); box-shadow: var(--shadow-sm); }
+[data-theme="neu"] .filters button { border: 0; background: var(--bg); box-shadow: var(--shadow-sm); }
+[data-theme="neu"] .filters button.on { background: var(--bg); color: var(--blue); box-shadow: var(--inset); }
+[data-theme="neu"] .mini button { border-top: 0; }
+[data-theme="neu"] .issue-cta, [data-theme="neu"] .pid-card {
+  background: var(--bg); color: var(--ink); box-shadow: var(--shadow);
+}
+[data-theme="neu"] .issue-cta > svg.i:first-child { background: var(--bg); box-shadow: var(--inset); }
+[data-theme="neu"] .issue-cta > svg.i:first-child { color: #ea580c; }
+[data-theme="neu"] .issue-cta small { color: var(--muted); opacity: 1; }
+[data-theme="neu"] .pid-card b { color: var(--blue); }
+[data-theme="neu"] .pid-card small, [data-theme="neu"] .pid-meta { color: var(--muted); opacity: 1; }
+[data-theme="neu"] .info, [data-theme="neu"] .book-who { background: var(--bg); box-shadow: var(--inset); }
+[data-theme="neu"] .sheet, [data-theme="neu"] .sheet-foot { background: var(--bg); }
+[data-theme="neu"] .slip { background: var(--bg); border: 0; box-shadow: var(--shadow); }
+[data-theme="neu"] .slip-cut::before, [data-theme="neu"] .slip-cut::after { background: var(--bg); border: 0; box-shadow: var(--inset); }
+[data-theme="neu"] .choice { border: 0; }
+[data-theme="neu"] .look-hit { border: 0; background: var(--bg); box-shadow: var(--shadow-sm); }
+[data-theme="neu"] .nc-row.mine { background: var(--bg); box-shadow: var(--inset); }
+[data-theme="neu"] .tok.tk-blue { box-shadow: var(--shadow), 0 0 0 1.5px rgba(37, 99, 235, .3); }
+[data-theme="neu"] .pid-big { background: var(--bg); color: var(--blue); box-shadow: var(--shadow); }
+
+/* =====================================================================
+   Flat Design: solid colours, no shadows, no gradients, crisp corners
+   ===================================================================== */
+html[data-theme="flat"] {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --field: #f4f6f9;
+  --line: #dde3ea;
+  --shadow: none;
+  --shadow-lg: none;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --accent: #2563eb;
+  --accent-shadow: transparent;
+  --brand-grad: linear-gradient(#2563eb, #2563eb);
+}
+[data-theme="flat"] .topbar, [data-theme="flat"] .tabbar { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; }
+[data-theme="flat"] .btn, [data-theme="flat"] .fab, [data-theme="flat"] .icon-btn, [data-theme="flat"] .seg span,
+[data-theme="flat"] .search, [data-theme="flat"] .ctl, [data-theme="flat"] .chip, [data-theme="flat"] .badge,
+[data-theme="flat"] .filters button, [data-theme="flat"] .tab .pill, [data-theme="flat"] .av { border-radius: 6px; }
+[data-theme="flat"] .btn.primary { text-shadow: none; }
+[data-theme="flat"] .btn:active { transform: none; filter: brightness(.92); }
+[data-theme="flat"] .ctl:focus-within, [data-theme="flat"] .search:focus-within { box-shadow: none; border-color: var(--blue); }
+[data-theme="flat"] .sheet { border-radius: 10px 10px 0 0; }
+[data-theme="flat"] .sheet.full { border-radius: 0; }
+[data-theme="flat"] .sheet-wrap.dialog .sheet { border-radius: 10px; }
+[data-theme="flat"] .issue-cta { background: #f97316; box-shadow: none; }
+[data-theme="flat"] .pid-card { background: #1e40af; }
+[data-theme="flat"] .pid-big { box-shadow: none; }
+[data-theme="flat"] .av.c0 { background: #3b82f6; }
+[data-theme="flat"] .av.c1 { background: #f59e0b; }
+[data-theme="flat"] .av.c2 { background: #10b981; }
+[data-theme="flat"] .av.c3 { background: #8b5cf6; }
+[data-theme="flat"] .av.c4 { background: #db2777; }
+[data-theme="flat"] .choice .ic { background: #2563eb; }
+[data-theme="flat"] .c-pat .ic { background: #8b5cf6; }
+[data-theme="flat"] .nc-tok { background: #2563eb; }
+[data-theme="flat"] .nc-tok.me { background: #10b981; }
+[data-theme="flat"] .tok.tk-blue { box-shadow: inset 0 0 0 2px #bfdbfe; }
+[data-theme="flat"] .slip { border: 2px solid var(--line); border-radius: 10px; }
+[data-theme="flat"] .card, [data-theme="flat"] .choice { border: 1px solid transparent; }
+
+/* =====================================================================
+   Material Design (Material 3): tonal surfaces, pill buttons, outlined fields
+   ===================================================================== */
+html[data-theme="material"] {
+  --bg: #fef7ff;
+  --surface: #f7f2fa;
+  --field: transparent;
+  --line: #cac4d0;
+  --ink: #1d1b20;
+  --ink-2: #49454f;
+  --muted: #625b71;
+  --shadow: none;
+  --shadow-lg: 0 8px 12px 6px rgba(0, 0, 0, .12), 0 4px 4px rgba(0, 0, 0, .2);
+  --radius: 16px;
+  --radius-sm: 4px;
+  --accent: #6750a4;
+  --accent-shadow: transparent;
+  --font: Roboto, "Segoe UI", system-ui, sans-serif;
+  --brand-grad: linear-gradient(#6750a4, #6750a4);
+}
+[data-theme="material"] .topbar { background: var(--bg); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
+[data-theme="material"] .tabbar { background: #f3edf7; border-top: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
+[data-theme="material"] .tab { color: var(--ink-2); font-weight: 500; }
+[data-theme="material"] .tab.on { color: var(--ink); font-weight: 700; }
+[data-theme="material"] .tab .pill { width: 64px; height: 32px; border-radius: 16px; top: 7px; background: #e8def8; }
+[data-theme="material"] .btn { border-radius: 20px; min-height: 46px; font-weight: 600; letter-spacing: .1px; }
+[data-theme="material"] .btn.primary { text-shadow: none; }
+[data-theme="material"] .btn.primary:active { box-shadow: 0 1px 3px rgba(0, 0, 0, .3); }
+[data-theme="material"] .btn.ghost { background: transparent; border: 1px solid #79747e; color: #6750a4; }
+[data-theme="material"] .btn.soft { background: #e8def8; color: #1d192b; }
+[data-theme="material"] .fab { border-radius: 16px; background: #eaddff; color: #21005d; box-shadow: 0 1px 3px rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15); }
+[data-theme="material"] .icon-btn { background: transparent; border-radius: 20px; }
+[data-theme="material"] .ctl { border: 1px solid #79747e; border-radius: 4px; background: transparent; }
+[data-theme="material"] .ctl:focus-within { border-color: #6750a4; box-shadow: inset 0 0 0 1px #6750a4; background: transparent; }
+[data-theme="material"] .ctl:focus-within svg.i { color: #6750a4; }
+[data-theme="material"] .field.invalid .ctl { background: transparent; border-color: #b3261e; }
+[data-theme="material"] .seg span { border: 1px solid #79747e; border-radius: 20px; background: transparent; }
+[data-theme="material"] .seg input:checked + span { background: #e8def8; color: #1d192b; border-color: #79747e; }
+[data-theme="material"] .search { background: #ece6f0; border: 0; border-radius: 28px; }
+[data-theme="material"] .search:focus-within { box-shadow: none; background: #e6e0e9; }
+[data-theme="material"] .filters button { border-radius: 8px; border: 1px solid #79747e; background: transparent; font-weight: 600; }
+[data-theme="material"] .filters button.on { background: #e8def8; color: #1d192b; border-color: #e8def8; }
+[data-theme="material"] .chip { border-radius: 8px; background: #e8def8; color: #1d192b; }
+[data-theme="material"] .card { background: var(--surface); }
+[data-theme="material"] .mini button { border-top: 0; background: #f3edf7; }
+[data-theme="material"] .issue-cta { background: #ffd8e4; color: #31111d; box-shadow: none; }
+[data-theme="material"] .issue-cta > svg.i:first-child { background: rgba(255, 255, 255, .6); }
+[data-theme="material"] .pid-card { background: #6750a4; }
+[data-theme="material"] .pid-big { box-shadow: none; border-radius: 16px; }
+[data-theme="material"] .sheet { background: #f7f2fa; border-radius: 28px 28px 0 0; }
+[data-theme="material"] .sheet.full { border-radius: 0; background: var(--bg); }
+[data-theme="material"] .sheet-foot { background: inherit; }
+[data-theme="material"] .sheet-wrap.dialog .sheet { border-radius: 28px; background: #ece6f0; }
+[data-theme="material"] .info { background: #ece6f0; }
+[data-theme="material"] .group, [data-theme="material"] .profile, [data-theme="material"] .panel, [data-theme="material"] .now-consult, [data-theme="material"] .my-token { background: var(--surface); }
+[data-theme="material"] .tok.tk-blue { box-shadow: inset 0 0 0 1px #6750a4; }
+[data-theme="material"] .nc-tok { background: #6750a4; }
+[data-theme="material"] .nc-tok.me { background: #146c2e; }
+[data-theme="material"] .choice .ic { background: #6750a4; }
+[data-theme="material"] .c-pat .ic { background: #7d5260; }
+[data-theme="material"] .toast { background: #322f35; border-radius: 4px; }
+
+/* =====================================================================
+   Bento UI: a grid of rounded tiles in different sizes and soft colours
+   ===================================================================== */
+html[data-theme="bento"] {
+  --bg: #f3f1ec;
+  --surface: #ffffff;
+  --field: #f8f7f3;
+  --line: #e6e2d8;
+  --shadow: none;
+  --shadow-lg: 0 20px 50px rgba(24, 24, 27, .18);
+  --radius: 26px;
+  --radius-sm: 14px;
+  --accent: #18181b;
+  --accent-shadow: rgba(24, 24, 27, .2);
+  --brand-grad: linear-gradient(#18181b, #18181b);
+}
+[data-theme="bento"] .topbar { background: var(--bg); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
+[data-theme="bento"] .shell { padding-bottom: calc(var(--tabbar-h) + var(--safe-b) + 30px); }
+[data-theme="bento"] .tabbar {
+  left: 12px; right: 12px; bottom: calc(10px + var(--safe-b)); height: var(--tabbar-h); padding-bottom: 0;
+  border: 0; border-radius: 24px; background: #fff; box-shadow: 0 8px 28px rgba(24, 24, 27, .1);
+}
+[data-theme="bento"] .tab.on { color: #18181b; }
+[data-theme="bento"] .tab .pill { background: #18181b; width: 50px; height: 30px; }
+[data-theme="bento"] .tab.on svg.i { color: #fff; }
+[data-theme="bento"] .fab { background: #18181b; border-radius: 22px; bottom: calc(var(--tabbar-h) + var(--safe-b) + 26px); }
+[data-theme="bento"] .btn { border-radius: 999px; }
+[data-theme="bento"] .btn.primary { text-shadow: none; }
+[data-theme="bento"] .btn.ghost { background: #fff; }
+[data-theme="bento"] .ctl { background: #fff; }
+[data-theme="bento"] .seg span { background: #fff; }
+[data-theme="bento"] .seg input:checked + span { background: #18181b; border-color: #18181b; color: #fff; }
+[data-theme="bento"] .search, [data-theme="bento"] .filters button { border-radius: 999px; }
+[data-theme="bento"] .filters button.on { background: #18181b; border-color: #18181b; }
+[data-theme="bento"] .ctl:focus-within, [data-theme="bento"] .search:focus-within { border-color: #18181b; box-shadow: 0 0 0 4px rgba(24, 24, 27, .08); }
+[data-theme="bento"] .card { border-radius: 22px; }
+/* Token counters: tall total tile, two small, one wide */
+[data-theme="bento"] .mini { grid-template-columns: 1.15fr 1fr 1fr; gap: 10px; }
+[data-theme="bento"] .mini button { border-top: 0; border-radius: 20px; padding: 14px 6px; }
+[data-theme="bento"] .mini button:nth-child(1) { grid-row: span 2; background: #18181b; display: flex; flex-direction: column; justify-content: center; }
+[data-theme="bento"] .mini button:nth-child(1) b { color: #fff; font-size: 40px; }
+[data-theme="bento"] .mini button:nth-child(1) span { color: #a1a1aa; }
+[data-theme="bento"] .mini .m-amber { background: #fef3c7; }
+[data-theme="bento"] .mini .m-blue { background: #dbeafe; }
+[data-theme="bento"] .mini button:nth-child(4) { grid-column: span 2; background: #dcfce7; display: flex; align-items: center; justify-content: center; gap: 10px; }
+[data-theme="bento"] .mini button:nth-child(4) b { font-size: 24px; }
+[data-theme="bento"] .issue-cta { background: #18181b; box-shadow: none; border-radius: 26px; }
+[data-theme="bento"] .issue-cta > svg.i:first-child { background: #f97316; }
+[data-theme="bento"] .pid-card { background: #e0e7ff; color: #1e1b4b; border-radius: 24px; }
+[data-theme="bento"] .pid-big { box-shadow: none; border-radius: 22px; }
+[data-theme="bento"] .now-consult, [data-theme="bento"] .my-token, [data-theme="bento"] .group, [data-theme="bento"] .profile, [data-theme="bento"] .panel { border-radius: 26px; }
+[data-theme="bento"] .my-token { border-top: 0; }
+[data-theme="bento"] .nc-tok { background: #18181b; }
+[data-theme="bento"] .nc-row.mine { background: #f3f1ec; }
+[data-theme="bento"] .choice { border-radius: 26px; }
+[data-theme="bento"] .c-hosp { background: #dbeafe; }
+[data-theme="bento"] .c-pat { background: #ede9fe; }
+[data-theme="bento"] .choice .ic { background: #18181b; }
+[data-theme="bento"] .auth-card { border-radius: 28px; box-shadow: none; }
+[data-theme="bento"] .chip { background: #fff; color: #18181b; }
+[data-theme="bento"] .sheet { border-radius: 30px 30px 0 0; }
+[data-theme="bento"] .sheet.full { border-radius: 0; }
+[data-theme="bento"] .sheet-wrap.dialog .sheet { border-radius: 30px; }
+[data-theme="bento"] .tok.tk-blue { box-shadow: inset 0 0 0 2px #bfdbfe; }
+
+/* =====================================================================
+   Theme picker (shared by all themes)
+   ===================================================================== */
+.theme-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.theme-opt { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 18px; background: var(--surface); border: 2px solid var(--line); text-align: left; }
+.theme-opt.on { border-color: var(--blue); }
+.theme-opt .tick { position: absolute; top: 16px; right: 16px; width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: #fff; display: none; align-items: center; justify-content: center; z-index: 1; }
+.theme-opt .tick svg.i { width: 14px; height: 14px; stroke-width: 3; }
+.theme-opt.on .tick { display: flex; }
+.theme-opt b { font-size: 14.5px; padding: 0 2px; }
+.theme-opt small { font-size: 12px; color: var(--muted); padding: 0 2px; line-height: 1.35; }
+.theme-opt:first-child { grid-column: span 2; }
+.tp { height: 92px; border-radius: 12px; padding: 10px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr auto; gap: 8px; }
+.theme-opt:first-child .tp { grid-template-columns: 1fr 1fr 1fr; }
+.tp i { display: block; }
+.tp .tp-btn { grid-column: 1 / -1; height: 22px; }
+
+/* Theme button on the sign-in landing page */
+.theme-link { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 22px auto 0; padding: 8px 14px; border-radius: 999px; font-size: 13.5px; color: var(--ink-2); background: var(--surface); box-shadow: var(--shadow); }
+.theme-link svg.i { width: 17px; height: 17px; color: var(--blue); }
+[data-theme="neu"] .theme-link { box-shadow: var(--shadow-sm); }

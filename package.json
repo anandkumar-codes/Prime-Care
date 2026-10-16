@@ -1,0 +1,27 @@
+{
+  "name": "primecare-hms",
+  "version": "1.5.0",
+  "private": true,
+  "description": "Prime Care Hospital Management System",
+  "scripts": {
+    "sync": "cap sync android",
+    "build:apk": "cap sync android && cd android && .\\gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor-community/file-opener": "6.0.1",
+    "@capacitor/android": "6.2.2",
+    "@capacitor/app": "6.0.3",
+    "@capacitor/core": "6.2.2",
+    "@capacitor/filesystem": "6.0.4",
+    "@capacitor/haptics": "6.0.3",
+    "@capacitor/preferences": "6.0.4",
+    "@capacitor/share": "6.0.4",
+    "@capacitor/splash-screen": "6.0.4",
+    "@capacitor/status-bar": "6.0.3",
+    "jspdf": "2.5.2",
+    "jspdf-autotable": "3.8.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "6.2.2"
+  }
+}

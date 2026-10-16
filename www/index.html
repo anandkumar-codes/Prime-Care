@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="format-detection" content="telephone=no">
+  <title>Prime Care Hospital</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="themes.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="dark.css">
+  <script>try { var t = localStorage.getItem("pc-theme"); if (t && t !== "default") document.documentElement.setAttribute("data-theme", t); var m = localStorage.getItem("pc-mode"); if (m === "dark" || (m === "system" && matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.setAttribute("data-mode", "dark"); } catch (e) {}</script>
+</head>
+<body>
+  <!-- Shared gradient for the Orbit Cross ring. Kept first in the page so every logo can use it,
+       even while the logo that also carries a copy is on a hidden screen. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs><linearGradient id="pcRing" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0891b2"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+  </svg>
+
+  <!-- In-app launch animation, shown after the native splash hides -->
+  <div id="launch" aria-hidden="true">
+    <div class="launch-lockup">
+      <div class="launch-mark"></div>
+      <i class="launch-div"></i>
+      <div class="launch-text">
+        <strong>PRIME <em>CARE</em></strong>
+        <span>HOSPITAL</span>
+      </div>
+    </div>
+    <div class="launch-bar"><i></i></div>
+    <p class="launch-note" id="launchNote">Connecting to the Prime Care server…<br>The first connection after a quiet spell can take up to a minute.</p>
+  </div>
+
+  <!-- Screens render here: setup, login, or the main tabbed app -->
+  <div id="screen"></div>
+
+  <!-- Database write indicator: green = added, orange = updated, red = deleted -->
+  <div id="dbline" aria-hidden="true"><i></i></div>
+
+  <div id="sheets"></div>
+  <div id="toasts" aria-live="polite"></div>
+
+  <script src="config.js"></script>
+  <script src="vendor/capacitor.js"></script>
+  <script src="vendor/cap-app.js"></script>
+  <script src="vendor/cap-filesystem.js"></script>
+  <script src="vendor/cap-preferences.js"></script>
+  <script src="vendor/cap-haptics.js"></script>
+  <script src="vendor/cap-share.js"></script>
+  <script src="vendor/cap-splash-screen.js"></script>
+  <script src="vendor/cap-status-bar.js"></script>
+  <script src="vendor/cap-file-opener.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="vendor/jspdf.plugin.autotable.min.js"></script>
+  <script src="app.js"></script>
+  <script src="insights.js"></script>
+  <script src="reports.js"></script>
+  <script src="features.js"></script>
+  <script src="tokens.js"></script>
+</body>
+</html>
