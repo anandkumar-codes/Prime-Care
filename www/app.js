@@ -5,7 +5,7 @@
 const Cap = window.Capacitor;
 const NATIVE = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
 const Plug = (Cap && Cap.Plugins) || {};
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.8.0';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
