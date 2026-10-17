@@ -181,14 +181,14 @@ const Api = {
   del(path) { return this.request('DELETE', path); },
 };
 
-const COLLS = ['admins', 'staff', 'patients', 'tokens'];
+const COLLS = ['doctors', 'staff', 'patients', 'tokens'];
 const Store = {
   db: null,
   rev: 0,
   epoch: '',
   setupNeeded: false,
   syncedAt: null,
-  blank() { return { admins: [], staff: [], patients: [], tokens: [], tokenSeq: {} }; },
+  blank() { return { doctors: [], staff: [], patients: [], tokens: [], tokenSeq: {} }; },
   reset() { this.db = this.blank(); this.rev = 0; this.epoch = ''; this.syncedAt = null; },
   // Merges an answer from the server into the local copy; returns true when anything changed
   apply(s) {
@@ -214,7 +214,7 @@ const Store = {
     this.syncedAt = new Date().toISOString();
     // Keep the signed-in person pointing at their latest record
     if (S.user) {
-      const me = this.db[{ admin: 'admins', staff: 'staff', patient: 'patients' }[S.kind]].find(x => x.id === S.user.id);
+      const me = this.db[{ admin: 'doctors', staff: 'staff', patient: 'patients' }[S.kind]].find(x => x.id === S.user.id);
       if (me) S.user = me;
       this.saveCache();
     }
@@ -384,7 +384,7 @@ const avatar = (name, size = '') => `<div class="av ${size} c${colorIdx(name)}">
 const digits = s => String(s || '').replace(/\D/g, '');
 const displayName = a => (a.role === 'Doctor' && !/^dr\.?\s/i.test(a.name) ? 'Dr. ' : '') + a.name;
 const personName = id => {
-  const a = Store.db.admins.find(x => x.id === id) || Store.db.staff.find(x => x.id === id) || Store.db.patients.find(x => x.id === id);
+  const a = Store.db.doctors.find(x => x.id === id) || Store.db.staff.find(x => x.id === id) || Store.db.patients.find(x => x.id === id);
   return a ? displayName(a) : 'a removed account';
 };
 // Who is signed in: S.kind is 'admin' (Doctor/Manager) or 'staff'
@@ -396,10 +396,11 @@ const activeTokenFor = (phone, date, exceptId) => Store.db.tokens.find(t => t.da
 const patientTokenToday = p => Store.db.tokens.find(t => t.date === today() && (t.patientId === p.id || digits(t.patient.phone).slice(-10) === digits(p.phone).slice(-10)) && (t.source === 'patient' || t.status !== 'Cancelled'));
 const patientByPhone = phone => Store.db.patients.find(p => digits(p.phone).slice(-10) === digits(phone).slice(-10));
 const isDoctor = () => S.kind === 'admin' && S.user.role === 'Doctor';
-const doctors = () => Store.db.admins.filter(a => a.role === 'Doctor');
+// Store.db.doctors holds doctors and managers; this picks out the doctors only
+const doctors = () => Store.db.doctors.filter(a => a.role === 'Doctor');
 const usernameTaken = (name, exceptId) => {
   const n = name.toLowerCase();
-  return Store.db.admins.some(a => a.username === n && a.id !== exceptId) ||
+  return Store.db.doctors.some(a => a.username === n && a.id !== exceptId) ||
     Store.db.staff.some(s => s.login && s.login.username === n && s.id !== exceptId);
 };
 const userHandle = u => (u.login ? u.login.username : u.username);
@@ -1515,7 +1516,7 @@ function addDays(date, n) {
 const fmtTime = iso => (iso ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '');
 const dayLabel = date => (date === today() ? 'Today' : date === addDays(today(), -1) ? 'Yesterday' : new Date(date + 'T00:00:00').toLocaleDateString([], { weekday: 'long' }));
 const tokensOn = date => Store.db.tokens.filter(t => t.date === date).sort((a, b) => a.seq - b.seq);
-const doctorLabel = id => { const d = Store.db.admins.find(a => a.id === id); return d ? displayName(d) : 'Any available doctor'; };
+const doctorLabel = id => { const d = Store.db.doctors.find(a => a.id === id); return d ? displayName(d) : 'Any available doctor'; };
 // Patients still waiting before this one for the same doctor (or the shared queue)
 const aheadOf = t => Store.db.tokens.filter(x => x.date === t.date && x.status === 'Waiting' && x.seq < t.seq && (!t.doctorId || !x.doctorId || x.doctorId === t.doctorId)).length;
 function tokenCounts(list) {
@@ -1981,7 +1982,7 @@ function themeSheet(onChange) {
 /* ---------- Tab: Settings ---------- */
 function renderSettings() {
   const a = S.user;
-  const { admins, staff, tokens } = Store.db;
+  const { doctors: admins, staff, tokens } = Store.db;
   const roleLine = isStaff() ? `${a.role} · Staff` : `${a.role}${a.title ? ' · ' + a.title : ''}`;
   $('#page').innerHTML = `
     <div class="page-head"><h1>Settings</h1></div>
@@ -2035,7 +2036,7 @@ const row = (act, icon, color, title, sub, danger = false) =>
 function adminsSheet() {
   const draw = el => {
     const q = (($('#adminQ', el) || {}).value || '').trim().toLowerCase();
-    $('#adminList', el).innerHTML = Store.db.admins.filter(a => !q || [a.name, a.username, a.phone, a.role, a.title, a.id].some(x => String(x || '').toLowerCase().includes(q))).map(a => `
+    $('#adminList', el).innerHTML = Store.db.doctors.filter(a => !q || [a.name, a.username, a.phone, a.role, a.title, a.id].some(x => String(x || '').toLowerCase().includes(q))).map(a => `
       <div class="card" style="box-shadow:none;background:var(--field)">
         ${avatar(a.name)}
         <div class="meta"><div class="nm">${esc(displayName(a))}${a.id === S.user.id ? ' <span class="badge b-green">You</span>' : ''}</div><div class="sub">${esc(a.role)}${a.title ? ' · ' + esc(a.title) : ''} · @${esc(a.username)}</div></div>
@@ -2044,10 +2045,10 @@ function adminsSheet() {
     $$('[data-del]', el).forEach(b => {
       b.onclick = async ev => {
         ev.stopPropagation();
-        const a = Store.db.admins.find(x => x.id === b.dataset.del);
+        const a = Store.db.doctors.find(x => x.id === b.dataset.del);
         const ok = await confirmDialog({ title: 'Remove account?', message: `${displayName(a)} will no longer be able to sign in. Records they registered are kept.`, ok: 'Remove', danger: true, icon: 'trash' });
         if (!ok) return;
-        if (!(await attempt(null, () => Api.del(`/api/admins/${encodeURIComponent(a.id)}`)))) return;
+        if (!(await attempt(null, () => Api.del(`/api/doctors/${encodeURIComponent(a.id)}`)))) return;
         dbLine('delete');
         toast('Account removed');
         draw(el);
@@ -2083,7 +2084,7 @@ function addAdminSheet() {
   $('#saveAdmin', sheet.el).onclick = async () => {
     const v = readForm(form, adminRules);
     if (!v) return;
-    const r = await attempt($('#saveAdmin', sheet.el), () => Api.post('/api/admins', adminBody(v)), form);
+    const r = await attempt($('#saveAdmin', sheet.el), () => Api.post('/api/doctors', adminBody(v)), form);
     if (!r) return;
     const a = r.record;
     dbLine('add');
@@ -2129,7 +2130,7 @@ function passwordSheet() {
 
 // Where the data lives and when this phone last got the latest copy
 function serverSheet() {
-  const { admins, staff, patients, tokens } = Store.db;
+  const { doctors: admins, staff, patients, tokens } = Store.db;
   openSheet({
     html: `
       <div class="sheet-head"><h2>Online data</h2><button class="icon-btn" data-close aria-label="Close">${I('x')}</button></div>
@@ -2269,7 +2270,8 @@ async function restore() {
   if (!sess || !sess.token) return 'none';
   Api.token = sess.token;
   const c = await Store.readCache();
-  if (!c || c.kind !== sess.kind || !c.user || c.user.id !== sess.id) return 'token';
+  // A copy saved by an older version (doctors were then called "admins") is reloaded from the server
+  if (!c || !c.db || !c.db.doctors || c.kind !== sess.kind || !c.user || c.user.id !== sess.id) return 'token';
   Store.db = { ...Store.blank(), ...c.db };
   Store.rev = c.rev || 0;
   Store.epoch = c.epoch || '';

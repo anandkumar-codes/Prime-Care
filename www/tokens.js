@@ -4,7 +4,7 @@
 /* ---------- Token details shared by the PDF and the on-screen view ---------- */
 function tokenRows(t) {
   const p = t.patient, v = t.vitals || {};
-  const doc = Store.db.admins.find(a => a.id === t.doctorId);
+  const doc = Store.db.doctors.find(a => a.id === t.doctorId);
   const acct = t.patientId || (patientByPhone(p.phone) || {}).id;
   const vitals = [v.weight && `${v.weight} kg`, v.temp && `${v.temp} °F`, v.bp && `BP ${v.bp}`, v.pulse && `Pulse ${v.pulse}`].filter(Boolean).join('  ·  ');
   return [
@@ -110,7 +110,7 @@ const waNumber = phone => {
   return d;
 };
 const tokenMessage = t => {
-  const doc = Store.db.admins.find(a => a.id === t.doctorId);
+  const doc = Store.db.doctors.find(a => a.id === t.doctorId);
   return `Prime Care Hospital\nOP Token ${t.id} (No. ${String(t.seq).padStart(3, '0')}) for ${t.patient.name}\nDoctor: ${doc ? displayName(doc) : 'Any available doctor'}\n${fmtDate(t.date)}, ${fmtTime(t.issuedAt)}\nPlease show this token at the reception.`;
 };
 async function sendTokenWhatsApp(t) {

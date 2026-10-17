@@ -71,7 +71,7 @@ const sign = (kind, id, pwv = 0) => jwt.sign({ k: kind, sub: id, v: pwv }, JWT_S
 const pwvOf = (kind, a) => (kind === 'staff' ? (a.login && a.login.pwv) || 0 : a.pwv || 0);
 
 async function loadAccount(kind, id) {
-  if (kind === 'admin') return db.admins.findOne({ id });
+  if (kind === 'admin') return db.doctors.findOne({ id });
   if (kind === 'patient') return db.patients.findOne({ id });
   if (kind === 'staff') {
     const s = await db.staff.findOne({ id });
@@ -126,10 +126,10 @@ async function patientSync(p) {
   // Other people's tokens today: number, status and doctor only
   const queue = (await db.tokens.find({ date: t }, { projection: { _id: 0, id: 1, seq: 1, date: 1, status: 1, doctorId: 1 } }).toArray())
     .filter(x => !ownIds.has(x.id)).map(x => ({ ...x, patient: {} }));
-  const admins = await db.admins.find({}, { projection: { _id: 0, id: 1, name: 1, role: 1, title: 1 } }).toArray();
+  const doctors = await db.doctors.find({}, { projection: { _id: 0, id: 1, name: 1, role: 1, title: 1 } }).toArray();
   const staffIds = [...new Set(own.flatMap(x => [x.issuedBy, x.acceptedBy, x.cancelledBy, x.updatedBy]).filter(Boolean))];
   const staff = await db.staff.find({ id: { $in: staffIds } }, { projection: { _id: 0, id: 1, name: 1, role: 1 } }).toArray();
-  return { epoch: await epoch(), rev: 0, full: true, upserts: { admins, staff, patients: [clean(p)], tokens: [...own, ...queue] }, removed: [], tokenSeq: {} };
+  return { epoch: await epoch(), rev: 0, full: true, upserts: { doctors, staff, patients: [clean(p)], tokens: [...own, ...queue] }, removed: [], tokenSeq: {} };
 }
 
 const sync = req => (req.kind === 'patient' ? patientSync(req.user) : hospitalSync(+req.get('x-since') || 0, req.get('x-epoch') || ''));
@@ -159,7 +159,7 @@ const nextId = async kind => {
 };
 
 async function usernameTaken(name, exceptId) {
-  const [a, s] = await Promise.all([db.admins.findOne({ username: name }), db.staff.findOne({ 'login.username': name })]);
+  const [a, s] = await Promise.all([db.doctors.findOne({ username: name }), db.staff.findOne({ 'login.username': name })]);
   return (a && a.id !== exceptId) || (s && s.id !== exceptId);
 }
 
@@ -178,7 +178,7 @@ const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 40, standardHeade
 app.get('/', (req, res) => res.json({ name: 'Prime Care API', ok: true }));
 app.get('/api/health', (req, res) => res.json({ ok: true, time: now() }));
 app.get('/api/status', wrap(async (req, res) => {
-  res.json({ setupNeeded: (await db.admins.countDocuments({}, { limit: 1 })) === 0, today: today() });
+  res.json({ setupNeeded: (await db.doctors.countDocuments({}, { limit: 1 })) === 0, today: today() });
 }));
 
 /* ----- Doctor / manager accounts ----- */
@@ -200,12 +200,12 @@ async function adminFromBody(b, req) {
 
 // First run: the very first doctor or manager creates their account
 app.post('/api/setup', authLimit, wrap(async (req, res) => {
-  if (await db.admins.countDocuments({}, { limit: 1 })) fail(409, 'Prime Care is already set up. Please sign in.', { code: 'SETUP_DONE' });
+  if (await db.doctors.countDocuments({}, { limit: 1 })) fail(409, 'Prime Care is already set up. Please sign in.', { code: 'SETUP_DONE' });
   // Only one phone can win the race to set up
   try { await db.meta.insertOne({ _id: 'setup', at: now() }); } catch (e) { fail(409, 'Prime Care is already set up. Please sign in.', { code: 'SETUP_DONE' }); }
   try {
     const a = await adminFromBody(req.body);
-    const user = await insert('admins', a);
+    const user = await insert('doctors', a);
     res.json({ ok: true, token: sign('admin', a.id), kind: 'admin', user });
   } catch (e) { await db.meta.deleteOne({ _id: 'setup' }); throw e; }
 }));
@@ -214,7 +214,7 @@ app.post('/api/setup', authLimit, wrap(async (req, res) => {
 app.post('/api/login/hospital', authLimit, wrap(async (req, res) => {
   const role = oneOf(req.body.role, ['Doctor', 'Manager', 'Staff'], 'Doctor');
   const uname = str(req.body.username, 20).toLowerCase();
-  const admin = await db.admins.findOne({ username: uname });
+  const admin = await db.doctors.findOne({ username: uname });
   const staff = !admin ? await db.staff.findOne({ 'login.username': uname }) : null;
   const hash = admin ? admin.passwordHash : staff && staff.login ? staff.login.passwordHash : null;
   const ok = await checkPw(req.body.password, hash);
@@ -267,9 +267,9 @@ app.post('/api/reset/hospital', authLimit, wrap(async (req, res) => {
   const u = str(req.body.username, 20).toLowerCase(), ph = last10(req.body.phone), pw = str(req.body.password, 64);
   needPassword(pw);
   if (ph.length !== 10) fail(400, NO_MATCH);
-  const a = await db.admins.findOne({ username: u });
+  const a = await db.doctors.findOne({ username: u });
   if (a && last10(a.phone) === ph) {
-    await update('admins', { id: a.id }, { passwordHash: await hashPw(pw), pwv: (a.pwv || 0) + 1 });
+    await update('doctors', { id: a.id }, { passwordHash: await hashPw(pw), pwv: (a.pwv || 0) + 1 });
     return res.json({ ok: true });
   }
   const s = await db.staff.findOne({ 'login.username': u });
@@ -301,20 +301,20 @@ api.post('/password', wrap(async (req, res) => {
   const pw = str(req.body.password, 64);
   needPassword(pw);
   const hash = await hashPw(pw);
-  const coll = { admin: 'admins', staff: 'staff', patient: 'patients' }[req.kind];
+  const coll = { admin: 'doctors', staff: 'staff', patient: 'patients' }[req.kind];
   const v = pwvOf(req.kind, req.user) + 1;
   await update(coll, { id: req.user.id }, req.kind === 'staff' ? { 'login.passwordHash': hash, 'login.pwv': v } : { passwordHash: hash, pwv: v });
   res.json({ ok: true, token: sign(req.kind, req.user.id, v) });
 }));
 
 /* ----- Doctor and manager accounts ----- */
-api.post('/admins', allow(isAdmin), wrap(async (req, res) => {
+api.post('/doctors', allow(isAdmin), wrap(async (req, res) => {
   const a = await adminFromBody(req.body, req);
-  await reply(req, res, { record: await insert('admins', a) });
+  await reply(req, res, { record: await insert('doctors', a) });
 }));
-api.delete('/admins/:id', allow(isAdmin), wrap(async (req, res) => {
+api.delete('/doctors/:id', allow(isAdmin), wrap(async (req, res) => {
   if (req.params.id === req.user.id) fail(400, 'You cannot remove your own account');
-  if (!(await remove('admins', str(req.params.id, 10)))) fail(404, 'That account no longer exists');
+  if (!(await remove('doctors', str(req.params.id, 10)))) fail(404, 'That account no longer exists');
   await reply(req, res);
 }));
 
@@ -370,7 +370,7 @@ const tokenNo = (date, seq) => { const [y, m, d] = date.split('-'); return `${d}
 const activeTokenFor = (phone10, date, exceptId) => db.tokens.findOne({ phone10, date, status: { $ne: 'Cancelled' }, id: { $ne: exceptId || '' } });
 async function checkDoctor(id) {
   if (!id) return '';
-  const d = await db.admins.findOne({ id, role: 'Doctor' });
+  const d = await db.doctors.findOne({ id, role: 'Doctor' });
   if (!d) fail(400, 'Choose a doctor from the list', { field: 'doctorId' });
   return id;
 }

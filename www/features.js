@@ -238,7 +238,7 @@ function openSearch() {
       if (stf.length) groups.push(['Staff', 'users', stf.map(s => `<button class="gs-item" data-kind="staff" data-id="${esc(s.id)}">${avatar(s.name, 'sm')}<span><b>${esc(s.name)}</b><small>${esc(s.id)} · ${esc(s.role)}${s.department ? ' · ' + esc(s.department) : ''}</small></span>${I('chevron')}</button>`)]);
       const pts = Store.db.patients.filter(p => has(p.id, p.name, p.phone, p.email)).slice(0, 10);
       if (pts.length) groups.push(['Patient accounts', 'user', pts.map(p => `<button class="gs-item" data-kind="patient" data-id="${esc(p.id)}">${avatar(p.name, 'sm')}<span><b>${esc(p.name)}</b><small>${esc(p.id)} · ${esc(p.phone)}</small></span>${I('chevron')}</button>`)]);
-      const adm = Store.db.admins.filter(a => has(a.id, a.name, a.phone, a.username, a.title, a.role)).slice(0, 10);
+      const adm = Store.db.doctors.filter(a => has(a.id, a.name, a.phone, a.username, a.title, a.role)).slice(0, 10);
       if (adm.length) groups.push(['Doctors & managers', 'stetho', adm.map(a => `<div class="gs-item static">${avatar(a.name, 'sm')}<span><b>${esc(displayName(a))}</b><small>${esc(a.role)}${a.title ? ' · ' + esc(a.title) : ''} · @${esc(a.username)}</small></span></div>`)]);
     }
     box.innerHTML = groups.length
