@@ -27,8 +27,6 @@ const DEPARTMENTS = ['General Medicine', 'Emergency', 'Paediatrics', 'Gynaecolog
 const SHIFTS = ['Morning', 'Evening', 'Night', 'Rotational'];
 const STAFF_STATUS = ['Active', 'On leave', 'Inactive'];
 const GENDERS = ['Male', 'Female', 'Other'];
-const BLOOD = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'];
-const PLANS = ['Basic', 'Silver', 'Gold', 'Family'];
 const VISIT_TYPES = ['New', 'Follow-up', 'Emergency'];
 const PAY_MODES = ['Cash', 'UPI', 'Card', 'Free'];
 
@@ -131,7 +129,7 @@ async function patientSync(p) {
   const admins = await db.admins.find({}, { projection: { _id: 0, id: 1, name: 1, role: 1, title: 1 } }).toArray();
   const staffIds = [...new Set(own.flatMap(x => [x.issuedBy, x.acceptedBy, x.cancelledBy, x.updatedBy]).filter(Boolean))];
   const staff = await db.staff.find({ id: { $in: staffIds } }, { projection: { _id: 0, id: 1, name: 1, role: 1 } }).toArray();
-  return { epoch: await epoch(), rev: 0, full: true, upserts: { admins, staff, members: [], patients: [clean(p)], tokens: [...own, ...queue] }, removed: [], tokenSeq: {} };
+  return { epoch: await epoch(), rev: 0, full: true, upserts: { admins, staff, patients: [clean(p)], tokens: [...own, ...queue] }, removed: [], tokenSeq: {} };
 }
 
 const sync = req => (req.kind === 'patient' ? patientSync(req.user) : hospitalSync(+req.get('x-since') || 0, req.get('x-epoch') || ''));
@@ -156,7 +154,7 @@ async function remove(coll, id) {
 }
 const nextId = async kind => {
   const n = await counter(kind);
-  const prefix = { admin: 'PCA-', staff: 'PCS-', member: 'PCM-', patient: 'PCP-' }[kind];
+  const prefix = { admin: 'PCA-', staff: 'PCS-', patient: 'PCP-' }[kind];
   return prefix + pad(n, { admin: 2, patient: 5 }[kind] || 4);
 };
 
@@ -365,40 +363,6 @@ api.delete('/staff/:id', allow(isAdmin), wrap(async (req, res) => {
   await reply(req, res);
 }));
 
-/* ----- Members (front desk can add and edit, only doctors/managers delete) ----- */
-async function memberFromBody(b, existing) {
-  const v = {
-    name: str(b.name, 60), gender: oneOf(b.gender, GENDERS), dob: isDate(str(b.dob, 10)) ? str(b.dob, 10) : '',
-    bloodGroup: oneOf(b.bloodGroup, BLOOD, 'Unknown'), phone: str(b.phone, 15), email: str(b.email, 80), address: str(b.address, 200),
-    plan: oneOf(b.plan, PLANS, 'Basic'), emergencyName: str(b.emergencyName, 60), emergencyPhone: str(b.emergencyPhone, 15), medicalNotes: str(b.medicalNotes, 500),
-  };
-  need(v.name.length >= 2, 'name', v.name ? 'Name is too short' : 'Name is required');
-  need(v.gender, 'gender', 'Select a gender');
-  need(!v.dob || v.dob <= today(), 'dob', 'Date cannot be in the future');
-  need(validPhone(v.phone), 'phone', 'Enter a valid 10-digit phone number');
-  need(validEmail(v.email), 'email', 'Enter a valid email address');
-  need(!v.emergencyPhone || validPhone(v.emergencyPhone), 'emergencyPhone', 'Enter a valid 10-digit phone number');
-  const same = await db.members.find({ phone10: last10(v.phone), id: { $ne: existing ? existing.id : '' } }).toArray();
-  const dup = same.find(m => m.name.toLowerCase() === v.name.toLowerCase());
-  if (dup) fail(409, `${dup.name} is already registered with this phone (${dup.id})`, { field: 'phone' });
-  v.phone10 = last10(v.phone);
-  return v;
-}
-api.post('/members', allow(isHospital), wrap(async (req, res) => {
-  const v = await memberFromBody(req.body);
-  await reply(req, res, { record: await insert('members', { id: await nextId('member'), ...v, createdAt: now(), createdBy: req.user.id }) });
-}));
-api.put('/members/:id', allow(isHospital), wrap(async (req, res) => {
-  const ex = await db.members.findOne({ id: str(req.params.id, 10) });
-  if (!ex) fail(404, 'This member no longer exists');
-  const v = await memberFromBody(req.body, ex);
-  await reply(req, res, { record: await update('members', { id: ex.id }, { ...v, updatedAt: now(), updatedBy: req.user.id }) });
-}));
-api.delete('/members/:id', allow(isAdmin), wrap(async (req, res) => {
-  if (!(await remove('members', str(req.params.id, 10)))) fail(404, 'This member no longer exists');
-  await reply(req, res);
-}));
-
 /* ----- OP tokens -----
    Numbers are ddmmyy-NNN: the date plus that day's running count, handed out by the server
    so two phones can never issue the same number. A mobile number holds one active token per day. */
@@ -412,7 +376,7 @@ async function checkDoctor(id) {
 }
 async function deskFields(b) {
   const v = {
-    patient: { name: str(b.name, 60), age: str(b.age, 3), gender: oneOf(b.gender, GENDERS), phone: str(b.phone, 15), memberId: str(b.memberId, 10) },
+    patient: { name: str(b.name, 60), age: str(b.age, 3), gender: oneOf(b.gender, GENDERS), phone: str(b.phone, 15) },
     doctorId: await checkDoctor(str(b.doctorId, 10)), visitType: oneOf(b.visitType, VISIT_TYPES, 'New'), complaint: str(b.complaint, 300),
     vitals: { weight: str(b.weight, 5), temp: str(b.temp, 5), bp: str(b.bp, 9), pulse: str(b.pulse, 3) },
     fee: str(b.fee, 6), payMode: oneOf(b.payMode, PAY_MODES, 'Cash'),
@@ -469,7 +433,7 @@ api.post('/tokens/book', allow(req => req.kind === 'patient'), wrap(async (req, 
   let age = n.getUTCFullYear() - dob.getUTCFullYear();
   if (n.getUTCMonth() < dob.getUTCMonth() || (n.getUTCMonth() === dob.getUTCMonth() && n.getUTCDate() < dob.getUTCDate())) age--;
   const t = await newToken({
-    patient: { name: p.name, age: isNaN(age) ? '' : String(age), gender: p.gender, phone: p.phone, memberId: '' }, phone10: p.phone10,
+    patient: { name: p.name, age: isNaN(age) ? '' : String(age), gender: p.gender, phone: p.phone }, phone10: p.phone10,
     patientId: p.id, source: 'patient', doctorId: await checkDoctor(str(req.body.doctorId, 10)),
     visitType: oneOf(req.body.visitType, ['New', 'Follow-up'], 'New'), complaint, vitals: {}, fee: '', payMode: '',
     // App bookings wait for the hospital to accept them; the number is held meanwhile
@@ -516,7 +480,7 @@ api.get('/export', allow(isAdmin), wrap(async (req, res) => {
 }));
 api.post('/erase', allow(isAdmin), wrap(async (req, res) => {
   if (!(await checkPw(req.body.password, req.user.passwordHash))) fail(400, 'Incorrect password. Nothing was erased.', { field: 'password' });
-  await Promise.all([...COLLS, 'tombstones', 'counters'].map(c => db[c].deleteMany({})));
+  await Promise.all([...COLLS, 'members', 'tombstones', 'counters'].map(c => db[c].deleteMany({})));
   await db.meta.deleteOne({ _id: 'setup' });
   await newEpoch();
   res.json({ ok: true });

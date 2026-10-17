@@ -45,7 +45,6 @@ function insStats(w) {
     consult: avg(consults),
     fees: visits.reduce((s, t) => s + (+t.fee || 0), 0),
     appShare: visits.length ? visits.filter(t => t.source === 'patient').length / visits.length : null,
-    newMembers: created(Store.db.members),
     newPatients: created(Store.db.patients),
   };
 }
@@ -355,11 +354,6 @@ function renderInsights() {
 
   /* Hospital (doctors and managers) */
   if (manager) {
-    const plans = PLANS.map((p, slot) => ({ l: p, v: Store.db.members.filter(m => m.plan === p).length, slot }));
-    cards.push({
-      id: 'plans', title: 'Members by plan', sub: `All ${Store.db.members.length} registered members`, types: ['bar', 'pie', 'donut'],
-      render: catRender(plans), table: vizTable(['Plan', 'Members'], plans.map(p => [p.l, p.v])),
-    });
     // More than 8 roles would exceed the palette, so the tail folds into "Other"
     let roles = STAFF_ROLES.map((r, slot) => ({ l: r, v: Store.db.staff.filter(s => s.role === r && s.status !== 'Inactive').length, slot })).filter(r => r.v);
     if (roles.length > 8) {
@@ -421,7 +415,7 @@ function renderInsights() {
       ${tile('clock', 'Avg wait', fmtMin(cur.wait), delta(cur.wait, old.wait, false, x => fmtMin(x)))}
       ${tile('stetho', 'Avg consultation', fmtMin(cur.consult), delta(cur.consult, old.consult, false, x => fmtMin(x)))}
       ${tile('rupee', 'OP fees', fmtRs(cur.fees), delta(cur.fees, old.fees, true, x => fmtRs(x)))}
-      ${tile('userPlus', 'New patients', String(cur.newPatients + cur.newMembers), `<span class="vz-d">${cur.newPatients} app · ${cur.newMembers} members</span>`)}
+      ${tile('userPlus', 'New patients', String(cur.newPatients), '<span class="vz-d">registered in the app</span>')}
     </div>
 
     ${myStats ? `<div class="vz-me">${I('stetho')}<span>You completed <b>${myStats.n}</b> consultation${myStats.n === 1 ? '' : 's'} in this period${myStats.c !== null ? `, averaging <b>${fmtMin(myStats.c)}</b> each` : ''}.</span></div>` : ''}

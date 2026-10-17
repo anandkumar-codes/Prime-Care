@@ -209,20 +209,20 @@ if (Plug.App) {
 }
 
 /* ---------- Global search ----------
-   One search box across tokens, staff, members, patient accounts and doctor/manager accounts. */
+   One search box across tokens, staff, patient accounts and doctor/manager accounts. */
 function openSearch() {
   const sheet = openSheet({
     full: true,
     html: `
       <div class="sheet-head gs-head">
         <button class="icon-btn" data-close aria-label="Close">${I('chevL')}</button>
-        <label class="search gs-box">${I('search')}<input id="gsQ" type="search" placeholder="Search tokens, staff, members, patients" autocomplete="off"><button class="clear hidden" type="button" aria-label="Clear">${I('x')}</button></label>
+        <label class="search gs-box">${I('search')}<input id="gsQ" type="search" placeholder="Search tokens, staff, patients" autocomplete="off"><button class="clear hidden" type="button" aria-label="Clear">${I('x')}</button></label>
       </div>
       <div class="sheet-body" id="gsRes"></div>`,
   });
   const input = $('#gsQ', sheet.el), clear = $('.clear', sheet.el), box = $('#gsRes', sheet.el);
   const hint = () => {
-    box.innerHTML = `<div class="gs-hint">${I('search')}<p>Search by name, phone number, token number (like ${esc(tourTokenNo().replace('-007', '-001'))}), or an ID such as PCS-0001, PCM-0001 or PCP-00001.</p></div>`;
+    box.innerHTML = `<div class="gs-hint">${I('search')}<p>Search by name, phone number, token number (like ${esc(tourTokenNo().replace('-007', '-001'))}), or an ID such as PCS-0001 or PCP-00001.</p></div>`;
   };
   const draw = () => {
     const q = input.value.trim().toLowerCase();
@@ -230,13 +230,9 @@ function openSearch() {
     if (q.length < 2) { hint(); return; }
     const has = (...xs) => xs.some(x => String(x || '').toLowerCase().includes(q));
     const groups = [];
-    const toks = Store.db.tokens.filter(t => has(t.id, t.patient.name, t.patient.phone, t.patient.memberId, t.complaint))
+    const toks = Store.db.tokens.filter(t => has(t.id, t.patient.name, t.patient.phone, t.complaint))
       .sort((a, b) => (b.date + b.seq).localeCompare(a.date + a.seq)).slice(0, 15);
     if (toks.length) groups.push(['OP tokens', 'ticket', toks.map(t => `<button class="gs-item" data-kind="token" data-id="${esc(t.id)}"><div class="tno sm-t tk-${TOKEN_STYLE[t.status][1]}"><b>${String(t.seq).padStart(3, '0')}</b></div><span><b>${esc(t.patient.name)}</b><small>${esc(t.id)} · ${fmtDate(t.date)} · ${esc(t.status)}</small></span>${I('chevron')}</button>`)]);
-    if (!isPatient()) {
-      const mem = Store.db.members.filter(m => has(m.id, m.name, m.phone, m.email)).slice(0, 10);
-      if (mem.length) groups.push(['Members', 'idCard', mem.map(m => `<button class="gs-item" data-kind="member" data-id="${esc(m.id)}">${avatar(m.name, 'sm')}<span><b>${esc(m.name)}</b><small>${esc(m.id)} · ${esc(m.phone)} · ${esc(m.plan)}</small></span>${I('chevron')}</button>`)]);
-    }
     if (!isStaff()) {
       const stf = Store.db.staff.filter(s => has(s.id, s.name, s.phone, s.role, s.department, s.login && s.login.username)).slice(0, 10);
       if (stf.length) groups.push(['Staff', 'users', stf.map(s => `<button class="gs-item" data-kind="staff" data-id="${esc(s.id)}">${avatar(s.name, 'sm')}<span><b>${esc(s.name)}</b><small>${esc(s.id)} · ${esc(s.role)}${s.department ? ' · ' + esc(s.department) : ''}</small></span>${I('chevron')}</button>`)]);
@@ -251,7 +247,7 @@ function openSearch() {
     $$('.gs-item[data-kind]', box).forEach(b => {
       b.onclick = () => {
         const { kind, id } = b.dataset;
-        ({ token: tokenDetail, member: memberDetail, staff: staffDetail, patient: patientDetail })[kind](id);
+        ({ token: tokenDetail, staff: staffDetail, patient: patientDetail })[kind](id);
       };
     });
   };

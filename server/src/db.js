@@ -6,7 +6,7 @@
 const { MongoClient } = require('mongodb');
 const crypto = require('crypto');
 
-const COLLS = ['admins', 'staff', 'members', 'patients', 'tokens'];
+const COLLS = ['admins', 'staff', 'patients', 'tokens'];
 const db = {};
 let client;
 
@@ -15,6 +15,8 @@ async function connect(uri, name) {
   await client.connect();
   const d = client.db(name);
   for (const c of [...COLLS, 'tombstones', 'counters', 'meta']) db[c] = d.collection(c);
+  // Left over from versions that had Members; no longer read or sent, only cleared by "Erase all data"
+  db.members = d.collection('members');
 
   await Promise.all([
     ...COLLS.map(c => db[c].createIndex({ id: 1 }, { unique: true })),

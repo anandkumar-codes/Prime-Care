@@ -227,8 +227,6 @@ html:not([data-conn]) .conn-dot { animation: connPulse 1.2s ease-in-out infinite
 .b-violet { background: var(--violet-soft); color: #6d28d9; }
 .b-red { background: var(--red-soft); color: var(--red); }
 .b-grey { background: #f1f5f9; color: var(--muted); }
-.b-silver { background: #f1f5f9; color: #475569; }
-.b-gold { background: #fef3c7; color: #a16207; }
 
 /* ---------- Home ---------- */
 .hello { margin-bottom: 18px; }
@@ -453,9 +451,6 @@ html:not([data-conn]) .conn-dot { animation: connPulse 1.2s ease-in-out infinite
 .look-hit small { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .look-hit > svg.i { color: var(--blue); }
 .look-none { font-size: 13px; color: var(--muted); padding: 4px 4px 8px; }
-.member-tag { display: flex; align-items: center; gap: 8px; background: var(--green-soft); color: #047857; padding: 8px 12px; border-radius: 12px; font-size: 13px; margin: -4px 0 14px; }
-.member-tag span { flex: 1; }
-.member-tag button { font-weight: 700; color: #047857; text-decoration: underline; font-size: 13px; }
 
 /* Token slip */
 .slip { position: relative; border-radius: 22px; padding: 20px 18px 18px; text-align: center; background: linear-gradient(180deg, #fff, #f8fafc); border: 1.5px solid var(--line); animation: slipIn .45s cubic-bezier(.2, .9, .3, 1.2) both; }

@@ -12,7 +12,6 @@ function tokenRows(t) {
     ['Age / gender', [p.age !== '' && p.age !== undefined ? `${p.age} years` : '', p.gender].filter(Boolean).join(' · ')],
     ['Mobile', p.phone],
     acct && ['Patient ID', acct],
-    p.memberId && ['Member ID', p.memberId],
     ['Doctor', doc ? `${displayName(doc)}${doc.title ? ' · ' + doc.title : ''}` : 'Any available doctor'],
     ['Visit type', t.visitType || 'New'],
     t.complaint && ['Reason', t.complaint],

@@ -1,7 +1,7 @@
 # Prime Care Hospital Management System
 
 Android app (Capacitor 6.2.2) for Prime Care Hospital, with its data online: an API on Render backed by MongoDB Atlas.
-Doctors and managers sign in to register staff and members; staff run the OP token desk; patients book their own tokens.
+Doctors and managers sign in to register staff; staff run the OP token desk; patients book their own tokens.
 
 ## Project layout
 
@@ -9,7 +9,7 @@ Doctors and managers sign in to register staff and members; staff run the OP tok
 |------|------------|
 | `www/index.html` | App shell: launch animation, screen, sheet and toast containers |
 | `www/styles.css` | Design system (brand colours from the Orbit Cross logo) |
-| `www/app.js` | Screens, server connection and sync, accounts, staff and member registration |
+| `www/app.js` | Screens, server connection and sync, accounts, staff registration, OP tokens |
 | `www/config.js` | The server address the app connects to (`apiUrl`) |
 | `server/` | The Prime Care API (Node 20, Express, MongoDB driver) |
 | `render.yaml` | Render Blueprint that deploys `server/` |
@@ -28,7 +28,7 @@ without a connection it shows "Can't reach Prime Care" with a Try again button.
 - **Sync:** every record has a revision number (`rev`). Phones ask for changes since the revision they already have,
   every 15 seconds and on pull-to-refresh, and every change answers with the latest changes too.
 - **IDs and token numbers** are handed out by the server, so two phones can never issue the same one.
-  Accounts `PCA-01`, staff `PCS-0001`, members `PCM-0001`, patients `PCP-00001`.
+  Accounts `PCA-01`, staff `PCS-0001`, patients `PCP-00001`.
   OP tokens: `ddmmyy-NNN`, the date (in `HOSPITAL_TZ`, India by default) plus that day's running count, e.g. `151026-007`.
   Numbers are never reused, even after a cancellation. A mobile number holds one active token per day.
 - **Forgot password** (no SMS yet): hospital accounts verify with username + registered phone; patients with
@@ -64,7 +64,7 @@ logo header, report title, period and report ID, a thin page border, and a "Page
 `Documents/PrimeCare/Reports` and opened with `@capacitor-community/file-opener`.
 
 Reports: OP Token Register, Daily OP Summary, Doctor-wise Consultations, OP Fee Collection, Cancelled Tokens,
-Member Register, Patient Accounts, Staff Directory, and (for patients) My Visit History. Periods: today, yesterday,
+Patient Accounts, Staff Directory, and (for patients) My Visit History. Periods: today, yesterday,
 this week, last 7 days, this month, last month, last 30 days, this year, all time, or a custom range.
 
 ## Native plugin, sounds and search
@@ -73,7 +73,7 @@ this week, last 7 days, this month, last month, last 30 days, this year, all tim
   (`PrimeBiometric`, registered in `MainActivity`) wrapping AndroidX BiometricPrompt. Settings → Security turns on
   fingerprint unlock for one account per phone; the app then locks on launch and after a minute in the background.
 - `www/features.js` holds the sound effects (Web Audio tones, all under a second, switchable in Settings), the
-  fingerprint lock screen, and the global search (top-bar magnifier) across tokens, staff, members and patients.
+  fingerprint lock screen, and the global search (top-bar magnifier) across tokens, staff and patients.
 
 ## Token slips and WhatsApp
 
@@ -87,8 +87,8 @@ this week, last 7 days, this month, last month, last 30 days, this year, all tim
 | Role | Can do |
 |------|--------|
 | Doctor | Everything a manager can; sees the day's OP tokens with a date picker for history, starts/completes consultations, writes notes |
-| Manager | Registers staff (and gives them app sign-in), members, doctor/manager accounts; views OP tokens by date; cancels tokens |
-| Staff | Signs in only if a manager enabled it; issues and edits OP tokens for today, registers members |
+| Manager | Registers staff (and gives them app sign-in) and doctor/manager accounts; views OP tokens by date; cancels tokens |
+| Staff | Signs in only if a manager enabled it; issues and edits OP tokens for today |
 | Patient | Registers on the Patient Login page (gets a Patient ID like `PCP-00001`), signs in with mobile number or Patient ID, books one OP token for today, sees visit history with doctor's notes |
 
 ## Build the APK

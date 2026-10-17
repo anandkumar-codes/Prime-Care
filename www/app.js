@@ -1,5 +1,5 @@
 /* Prime Care Hospital Management System
-   App shell, JSON storage, Doctor/Manager accounts, Staff and Member registration. */
+   App shell, server connection, Doctor/Manager accounts, Staff registration and OP tokens. */
 'use strict';
 
 const Cap = window.Capacitor;
@@ -131,9 +131,6 @@ const DEPARTMENTS = ['General Medicine', 'Emergency', 'Paediatrics', 'Gynaecolog
 const SHIFTS = ['Morning', 'Evening', 'Night', 'Rotational'];
 const STAFF_STATUS = ['Active', 'On leave', 'Inactive'];
 const GENDERS = ['Male', 'Female', 'Other'];
-const BLOOD = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'];
-const PLANS = ['Basic', 'Silver', 'Gold', 'Family'];
-const PLAN_STYLE = { Basic: ['b-blue', '#2563eb'], Silver: ['b-silver', '#94a3b8'], Gold: ['b-gold', '#f59e0b'], Family: ['b-violet', '#8b5cf6'] };
 const STATUS_STYLE = { Active: ['b-green', '#10b981'], 'On leave': ['b-amber', '#f59e0b'], Inactive: ['b-grey', '#94a3b8'] };
 
 /* ---------- Server connection ----------
@@ -184,14 +181,14 @@ const Api = {
   del(path) { return this.request('DELETE', path); },
 };
 
-const COLLS = ['admins', 'staff', 'members', 'patients', 'tokens'];
+const COLLS = ['admins', 'staff', 'patients', 'tokens'];
 const Store = {
   db: null,
   rev: 0,
   epoch: '',
   setupNeeded: false,
   syncedAt: null,
-  blank() { return { admins: [], staff: [], members: [], patients: [], tokens: [], tokenSeq: {} }; },
+  blank() { return { admins: [], staff: [], patients: [], tokens: [], tokenSeq: {} }; },
   reset() { this.db = this.blank(); this.rev = 0; this.epoch = ''; this.syncedAt = null; },
   // Merges an answer from the server into the local copy; returns true when anything changed
   apply(s) {
@@ -303,7 +300,7 @@ async function endSession() {
   S.user = null;
   S.kind = null;
   S.tab = 'home';
-  S.staffQ = S.memberQ = S.tokenQ = '';
+  S.staffQ = S.tokenQ = '';
   S.tokenDate = null;
   Store.reset();
   await Session.set(null);
@@ -556,7 +553,7 @@ const R = {
 };
 
 /* ---------- App state and routing ---------- */
-const S = { user: null, kind: null, tab: 'home', tokenDate: null, tokenStatus: 'All', tokenMine: false, tokenQ: '', staffQ: '', staffRole: 'All', memberQ: '', memberPlan: 'All', auth: null, insRange: 7 };
+const S = { user: null, kind: null, tab: 'home', tokenDate: null, tokenStatus: 'All', tokenMine: false, tokenQ: '', staffQ: '', staffRole: 'All', auth: null, insRange: 7 };
 
 function route() {
   if (Store.setupNeeded) renderSetup();
@@ -607,7 +604,7 @@ function renderSetup() {
       <div class="auth-top">${LOGO_H}</div>
       <div class="auth-card">
         <h1>Welcome to Prime Care</h1>
-        <p>Create the first Doctor or Manager account. This account can register staff and members.</p>
+        <p>Create the first Doctor or Manager account. This account can register staff and other doctors and managers.</p>
         <form id="setupForm" novalidate>
           ${adminFields()}
           <button class="btn primary block" type="submit">${I('check')} Create account</button>
@@ -724,11 +721,11 @@ const TOUR = [
   {
     kicker: 'Hospital',
     title: 'Everything about your people',
-    text: 'Register staff and members, give staff app access, and keep every consultation on record.',
-    points: [['userPlus', 'Staff, members and doctor accounts in one place'], ['note', 'Doctors write notes when they complete a visit'], ['calendar', 'Look back at any day\'s tokens and outcomes']],
+    text: 'Register staff, give them app access, and keep every consultation on record.',
+    points: [['userPlus', 'Staff, doctor and manager accounts in one place'], ['note', 'Doctors write notes when they complete a visit'], ['calendar', 'Look back at any day\'s tokens and outcomes']],
     art: () => `
       <div class="tour-art a-people">
-        ${[['PN', 'Priya Nair', 'Nurse · Emergency', 'c4'], ['RV', 'Rahul Verma', 'Member · Gold plan', 'c0'], ['CR', 'Chandu Reddy', 'Receptionist', 'c3']]
+        ${[['PN', 'Priya Nair', 'Nurse · Emergency', 'c4'], ['RV', 'Rahul Verma', 'Patient · Follow-up visit', 'c0'], ['CR', 'Chandu Reddy', 'Receptionist', 'c3']]
           .map(([ini, n, s, c], i) => `<div class="tw-card" style="--i:${i}"><div class="av sm ${c}">${ini}</div><div><b>${n}</b><small>${s}</small></div></div>`).join('')}
         <div class="tw-note">${I('stetho')}<span>Viral fever. Rest and fluids.</span></div>
       </div>`,
@@ -1199,12 +1196,12 @@ function patientBook() {
 }
 
 /* ---------- Main tabbed shell ---------- */
-// Doctors and managers manage everything; staff run the OP token desk and register members
+// Doctors and managers manage everything; staff run the OP token desk
 const tabsFor = () => isPatient()
   ? [['phome', 'Home', 'home'], ['pvisits', 'My visits', 'clock'], ['pprofile', 'Profile', 'user']]
   : isStaff()
-  ? [['home', 'Home', 'home'], ['tokens', 'OP Tokens', 'ticket'], ['members', 'Members', 'idCard'], ['settings', 'Settings', 'settings']]
-  : [['home', 'Home', 'home'], ['tokens', 'OP Tokens', 'ticket'], ['staff', 'Staff', 'users'], ['members', 'Members', 'idCard'], ['settings', 'Settings', 'settings']];
+  ? [['home', 'Home', 'home'], ['tokens', 'OP Tokens', 'ticket'], ['settings', 'Settings', 'settings']]
+  : [['home', 'Home', 'home'], ['tokens', 'OP Tokens', 'ticket'], ['staff', 'Staff', 'users'], ['settings', 'Settings', 'settings']];
 function renderMain() {
   if (!S.tokenDate) S.tokenDate = today();
   $('#screen').innerHTML = `
@@ -1218,7 +1215,7 @@ function renderMain() {
   $$('.tab').forEach(t => { t.onclick = () => { if (S.tab !== t.dataset.tab) { buzz(); go(t.dataset.tab); } }; });
   $('#meBtn').onclick = () => go(isPatient() ? 'pprofile' : 'settings');
   if ($('#gsBtn')) $('#gsBtn').onclick = () => { buzz(); openSearch(); };
-  $('#fab').onclick = () => { buzz(); ({ members: memberForm, staff: staffForm, tokens: tokenForm })[S.tab](); };
+  $('#fab').onclick = () => { buzz(); ({ staff: staffForm, tokens: tokenForm })[S.tab](); };
   if (!tabsFor().some(t => t[0] === S.tab)) S.tab = tabsFor()[0][0];
   go(S.tab);
 }
@@ -1231,28 +1228,25 @@ function go(tab, quiet = false) {
   if (typeof hideVizTip === 'function') hideVizTip();
   $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
   // Only staff issue OP tokens, so the + button on the tokens tab is theirs
-  const fab = tab === 'staff' || tab === 'members' || (tab === 'tokens' && isStaff());
+  const fab = tab === 'staff' || (tab === 'tokens' && isStaff());
   $('#fab').classList.toggle('hide', !fab);
   const page = $('#page');
   const y = window.scrollY;
   if (!quiet) { page.style.animation = 'none'; void page.offsetWidth; page.style.animation = ''; }
-  ({ home: isStaff() ? renderStaffHome : renderHome, tokens: renderTokens, staff: renderStaff, members: renderMembers, settings: renderSettings, phome: renderPatientHome, pvisits: renderPatientVisits, pprofile: renderPatientProfile, insights: renderInsights })[tab]();
+  ({ home: isStaff() ? renderStaffHome : renderHome, tokens: renderTokens, staff: renderStaff, settings: renderSettings, phome: renderPatientHome, pvisits: renderPatientVisits, pprofile: renderPatientProfile, insights: renderInsights })[tab]();
   window.scrollTo(0, quiet ? y : 0);
 }
 const refresh = (quiet = false) => { if (S.user && $('#page')) go(S.tab, quiet); };
 
 /* ---------- Tab: Home ---------- */
 function renderHome() {
-  const { staff, members } = Store.db;
+  const { staff, patients } = Store.db;
   const a = S.user;
   const month = today().slice(0, 7);
-  const newThisMonth = members.filter(m => (m.createdAt || '').slice(0, 7) === month).length;
+  // Patient accounts registered this month, counted by the date in India (createdAt is stored in UTC)
+  const newThisMonth = patients.filter(p => p.createdAt && localDate(p.createdAt).slice(0, 7) === month).length;
   const activeStaff = staff.filter(s => s.status === 'Active').length;
-  const maxPlan = Math.max(1, ...PLANS.map(p => members.filter(m => m.plan === p).length));
-  const recent = [
-    ...staff.map(s => ({ kind: 'staff', r: s })),
-    ...members.map(m => ({ kind: 'member', r: m })),
-  ].sort((x, y) => (y.r.createdAt || '').localeCompare(x.r.createdAt || '')).slice(0, 5);
+  const recent = [...staff].sort((x, y) => (y.createdAt || '').localeCompare(x.createdAt || '')).slice(0, 5);
 
   $('#page').innerHTML = `
     <section class="hello">
@@ -1265,34 +1259,34 @@ function renderHome() {
     ${reportsCta()}
     <div class="kpis">
       ${kpiTile('staff', 'users', 'blue', staff.length, 'Total staff')}
-      ${kpiTile('members', 'idCard', 'green', members.length, 'Members')}
       ${kpiTile('staff', 'activity', 'violet', activeStaff, 'Active staff')}
-      ${kpiTile('members', 'award', 'amber', newThisMonth, 'New this month')}
+      ${kpiTile('rep:all', 'user', 'green', patients.length, 'Patient accounts')}
+      ${kpiTile('rep:month', 'userPlus', 'amber', newThisMonth, 'New this month')}
     </div>
     <div class="sec-title">Quick actions</div>
     <div class="qa-row">
       <button class="qa-tile t-blue" id="qaStaff"><span class="ic">${I('userPlus')}</span><span><b>Register staff</b><small>Nurses, technicians…</small></span></button>
-      <button class="qa-tile t-green" id="qaMember"><span class="ic">${I('idCard')}</span><span><b>Register member</b><small>Patients &amp; families</small></span></button>
+      <button class="qa-tile t-green" id="qaAdmin"><span class="ic">${I('shield')}</span><span><b>Add doctor or manager</b><small>Hospital sign-in</small></span></button>
     </div>
-    <div class="sec-title">Members by plan</div>
-    <div class="panel">
-      ${PLANS.map(p => {
-        const n = members.filter(m => m.plan === p).length;
-        return `<div class="bar-row"><span>${p}</span><div class="track"><div class="fill" style="width:${(n / maxPlan) * 100}%;background:${PLAN_STYLE[p][1]}"></div></div><b>${n}</b></div>`;
-      }).join('')}
-    </div>
-    <div class="sec-title">Recent registrations</div>
-    ${recent.length ? `<div class="list">${recent.map((x, i) => x.kind === 'staff' ? staffCard(x.r, i) : memberCard(x.r, i)).join('')}</div>`
-      : emptyState('users', 'blue', 'Nothing registered yet', 'Start by registering your first staff member or patient member.')}
+    <div class="sec-title">Recently registered staff</div>
+    ${recent.length ? `<div class="list">${recent.map(staffCard).join('')}</div>`
+      : emptyState('users', 'blue', 'No staff registered yet', 'Start by registering nurses, technicians and the front desk.')}
   `;
-  $$('.kpi').forEach(b => { b.onclick = () => { buzz(); go(b.dataset.go); }; });
+  // Staff tiles open the Staff list; patient-account tiles open the Patient Accounts report
+  $$('.kpi').forEach(b => {
+    b.onclick = () => {
+      buzz();
+      const g = b.dataset.go;
+      if (g.startsWith('rep:')) openReports({ type: 'patients', preset: g.slice(4) }); else go(g);
+    };
+  });
   $$('.op-panel .mini button').forEach(b => { b.onclick = () => { S.tokenDate = today(); S.tokenStatus = b.dataset.st; go('tokens'); }; });
   bindTokenCards($('.op-panel'));
   bindPendingBanner();
   $('#insBtn').onclick = () => go('insights');
   $('#repHome').onclick = () => openReports({ type: 'tokens', preset: 'today' });
   $('#qaStaff').onclick = () => staffForm();
-  $('#qaMember').onclick = () => memberForm();
+  $('#qaAdmin').onclick = () => addAdminSheet();
   bindCards($('#page'));
 }
 const headRep = id => `<button class="head-rep" id="${id}">${I('download')}<span>Report</span></button>`;
@@ -1327,7 +1321,6 @@ const emptyState = (icon, color, title, text, btn = '') =>
 
 function bindCards(root) {
   $$('.card[data-staff]', root).forEach(c => { c.onclick = () => staffDetail(c.dataset.staff); });
-  $$('.card[data-member]', root).forEach(c => { c.onclick = () => memberDetail(c.dataset.member); });
 }
 
 /* ---------- Tab: Staff ---------- */
@@ -1402,7 +1395,7 @@ function staffForm(existing) {
         ${F.section('App sign-in')}
         ${F.seg('loginEnabled', 'Can sign in to the app', [['Yes', 'check'], ['No', 'ban']], { value: s.login && s.login.enabled ? 'Yes' : existing ? 'No' : 'Yes' })}
         <div class="login-fields">
-          <p class="hint">${I('ticket')} Staff who can sign in can issue OP tokens and register members.</p>
+          <p class="hint">${I('ticket')} Staff who can sign in can issue and manage OP tokens.</p>
           ${F.text('username', 'Username', { icon: 'at', ph: 'e.g. priya', max: 20, value: s.login ? s.login.username : '', attrs: 'autocapitalize="none" spellcheck="false"' })}
           ${F.text('password', s.login ? 'New password' : 'Password', { icon: 'lock', type: 'password', ph: s.login ? 'Leave blank to keep the current one' : 'At least 6 characters', max: 64, auto: 'new-password' })}
         </div>
@@ -1492,145 +1485,6 @@ function staffDetail(id) {
   };
 }
 const infoRow = (icon, label, value) => (value ? `<div class="ir">${I(icon)}<span>${esc(label)}<b>${esc(value)}</b></span></div>` : '');
-
-/* ---------- Tab: Members ---------- */
-const memberCard = (m, i = 0) => {
-  const a = age(m.dob);
-  return `
-  <button class="card" data-member="${esc(m.id)}" style="animation-delay:${Math.min(i, 8) * 30}ms">
-    ${avatar(m.name)}
-    <div class="meta"><div class="nm">${esc(m.name)}</div><div class="sub">${esc(m.gender || '')}${a !== null ? ` · ${a} yrs` : ''}${m.bloodGroup && m.bloodGroup !== 'Unknown' ? ' · ' + esc(m.bloodGroup) : ''}</div></div>
-    <div class="side"><span class="id">${esc(m.id)}</span><span class="badge ${(PLAN_STYLE[m.plan] || PLAN_STYLE.Basic)[0]}">${esc(m.plan || 'Basic')}</span></div>
-  </button>`;
-};
-
-function renderMembers() {
-  $('#page').innerHTML = `
-    <div class="page-head">${backBtn()}<h1>Members</h1><span class="count">${Store.db.members.length} registered</span>${headRep('repMem')}</div>
-    <label class="search">${I('search')}<input id="q" type="search" placeholder="Search name, ID, phone" value="${esc(S.memberQ)}" autocomplete="off"><button class="clear ${S.memberQ ? '' : 'hidden'}" type="button" aria-label="Clear">${I('x')}</button></label>
-    ${Store.db.members.length ? `<div class="filters">${['All', ...PLANS].map(p => `<button data-f="${p}" class="${p === S.memberPlan ? 'on' : ''}">${p}</button>`).join('')}</div>` : ''}
-    <div id="results"></div>`;
-  $('#repMem').onclick = () => openReports({ type: 'members', preset: 'all', filters: S.memberPlan !== 'All' ? { plan: S.memberPlan } : {} });
-  bindBack();
-  bindSearch('memberQ', drawMemberList);
-  $$('.filters button').forEach(b => { b.onclick = () => { S.memberPlan = b.dataset.f; $$('.filters button').forEach(x => x.classList.toggle('on', x === b)); drawMemberList(); }; });
-  drawMemberList();
-}
-function drawMemberList() {
-  const q = S.memberQ.toLowerCase();
-  const list = Store.db.members
-    .filter(m => S.memberPlan === 'All' || m.plan === S.memberPlan)
-    .filter(m => !q || [m.name, m.id, m.phone, m.bloodGroup].some(x => String(x || '').toLowerCase().includes(q)))
-    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-  const box = $('#results');
-  if (!Store.db.members.length) {
-    box.innerHTML = emptyState('idCard', 'green', 'No members yet', 'Register patients and families as Prime Care members.', `<button class="btn primary" id="emptyAdd">${I('userPlus')} Register member</button>`);
-    $('#emptyAdd').onclick = () => memberForm();
-  } else if (!list.length) {
-    box.innerHTML = emptyState('search', 'violet', 'No matches', 'Try a different name, ID or phone number.');
-  } else {
-    box.innerHTML = `<div class="list">${list.map(memberCard).join('')}</div>`;
-    bindCards(box);
-  }
-}
-
-function memberForm(existing) {
-  const m = existing || { gender: 'Male', plan: 'Basic', bloodGroup: 'Unknown' };
-  const sheet = openSheet({
-    full: true,
-    html: `
-      <div class="sheet-head"><button class="icon-btn" data-close aria-label="Close">${I('x')}</button><h2>${existing ? 'Edit member' : 'Register member'}</h2>${existing ? `<span class="chip">${esc(m.id)}</span>` : ''}</div>
-      <form class="sheet-body" id="memberForm" novalidate>
-        ${F.section('Personal details')}
-        ${F.text('name', 'Full name', { req: true, icon: 'user', ph: 'e.g. Rahul Verma', max: 60, value: m.name })}
-        ${F.seg('gender', 'Gender', GENDERS, { req: true, value: m.gender })}
-        ${F.text('dob', 'Date of birth', { icon: 'calendar', type: 'date', value: m.dob, attrs: `max="${today()}"` })}
-        ${F.seg('bloodGroup', 'Blood group', BLOOD, { value: m.bloodGroup, wrap: true })}
-        ${F.section('Contact')}
-        <div class="row2">
-          ${F.text('phone', 'Phone', { req: true, icon: 'phone', type: 'tel', mode: 'tel', ph: 'Mobile number', max: 15, value: m.phone })}
-          ${F.text('email', 'Email', { icon: 'mail', type: 'email', mode: 'email', ph: 'Optional', max: 80, value: m.email })}
-        </div>
-        ${F.area('address', 'Address', { ph: 'House, street, city', max: 200, value: m.address })}
-        ${F.section('Membership')}
-        ${F.seg('plan', 'Plan', PLANS, { value: m.plan, wrap: true })}
-        ${F.section('Emergency contact')}
-        <div class="row2">
-          ${F.text('emergencyName', 'Name', { icon: 'user', ph: 'Relative or friend', max: 60, value: m.emergencyName })}
-          ${F.text('emergencyPhone', 'Phone', { icon: 'phone', type: 'tel', mode: 'tel', ph: 'Mobile number', max: 15, value: m.emergencyPhone })}
-        </div>
-        ${F.section('Medical')}
-        ${F.area('medicalNotes', 'Allergies and conditions', { ph: 'e.g. Penicillin allergy, diabetic', max: 500, value: m.medicalNotes })}
-      </form>
-      <div class="sheet-foot"><button class="btn ghost" data-close>Cancel</button><button class="btn primary" id="saveMember">${I('check')} ${existing ? 'Save changes' : 'Register'}</button></div>`,
-  });
-  const form = $('#memberForm', sheet.el);
-  liveClear(form);
-  form.onsubmit = e => { e.preventDefault(); $('#saveMember', sheet.el).click(); };
-  $('#saveMember', sheet.el).onclick = async () => {
-    const v = readForm(form, {
-      name: R.name,
-      gender: R.req('Select a gender'),
-      dob: R.notFuture,
-      phone: (v2, all) => {
-        const msg = R.phone()(v2);
-        if (msg) return msg;
-        const dup = Store.db.members.find(x => x.id !== m.id && digits(x.phone).slice(-10) === digits(v2).slice(-10) && x.name.toLowerCase() === (all.name || '').toLowerCase());
-        return dup ? `${dup.name} is already registered with this phone (${dup.id})` : '';
-      },
-      email: R.email,
-      emergencyPhone: R.phone(true),
-    });
-    if (!v) return;
-    const r = await attempt($('#saveMember', sheet.el), () => (existing ? Api.put(`/api/members/${encodeURIComponent(m.id)}`, v) : Api.post('/api/members', v)), form);
-    if (!r) return;
-    dbLine(existing ? 'update' : 'add');
-    buzz('success');
-    sheet.close();
-    toast(existing ? 'Member details updated' : `${v.name} registered on the ${v.plan} plan`);
-    refresh();
-  };
-}
-
-function memberDetail(id) {
-  const m = Store.db.members.find(x => x.id === id);
-  if (!m) return;
-  const a = age(m.dob);
-  const sheet = openSheet({
-    html: `
-      <div class="sheet-body">
-        <div class="detail-top">${avatar(m.name, 'lg')}<h2>${esc(m.name)}</h2><div class="idl">${esc(m.id)}</div>
-          <div class="badges"><span class="badge ${(PLAN_STYLE[m.plan] || PLAN_STYLE.Basic)[0]}">${esc(m.plan)} plan</span>${m.bloodGroup && m.bloodGroup !== 'Unknown' ? `<span class="badge b-red">${esc(m.bloodGroup)}</span>` : ''}</div></div>
-        <div class="quick">
-          <a href="tel:${esc(digits(m.phone))}" class="ic green">${I('phone')}Call</a>
-          <button class="ic blue" id="dEdit">${I('edit')}Edit</button>
-          <button class="ic red" id="dDel">${I('trash')}Delete</button>
-        </div>
-        <div class="info">
-          ${infoRow('user', 'Gender', m.gender)}
-          ${infoRow('calendar', 'Date of birth', m.dob ? `${fmtDate(m.dob)}${a !== null ? ` (${a} years)` : ''}` : '')}
-          ${infoRow('phone', 'Phone', m.phone)}
-          ${infoRow('mail', 'Email', m.email)}
-          ${infoRow('pin', 'Address', m.address)}
-          ${infoRow('sos', 'Emergency contact', [m.emergencyName, m.emergencyPhone].filter(Boolean).join(' · '))}
-          ${infoRow('note', 'Allergies and conditions', m.medicalNotes)}
-        </div>
-        <div class="stamp">Member since ${fmtDate(m.createdAt)} · registered by ${esc(personName(m.createdBy))}</div>
-      </div>`,
-  });
-  $('#dEdit', sheet.el).onclick = () => { sheet.close(); memberForm(m); };
-  // Front-desk staff can register and edit members, but only doctors/managers delete them
-  if (isStaff()) { $('#dDel', sheet.el).remove(); $('.quick', sheet.el).style.gridTemplateColumns = '1fr 1fr'; return; }
-  $('#dDel', sheet.el).onclick = async () => {
-    const ok = await confirmDialog({ title: 'Delete member?', message: `${m.name} (${m.id}) will be removed permanently.`, ok: 'Delete', danger: true, icon: 'trash' });
-    if (!ok) return;
-    if (!(await attempt(null, () => Api.del(`/api/members/${encodeURIComponent(m.id)}`)))) return;
-    dbLine('delete');
-    sheet.close();
-    toast('Member deleted');
-    refresh();
-  };
-}
 
 /* ---------- OP tokens ----------
    Staff issue tokens at the front desk. Each token number is the date as ddmmyy
@@ -1743,7 +1597,7 @@ function drawTokenList(date) {
   const list = all
     .filter(t => S.tokenStatus === 'All' || t.status === S.tokenStatus)
     .filter(t => !S.tokenMine || !isDoctor() || t.doctorId === S.user.id || !t.doctorId)
-    .filter(t => !q || [t.patient.name, t.patient.phone, t.id, t.patient.memberId].some(x => String(x || '').toLowerCase().includes(q)));
+    .filter(t => !q || [t.patient.name, t.patient.phone, t.id].some(x => String(x || '').toLowerCase().includes(q)));
   const box = $('#results');
   if (!all.length) {
     const msg = isStaff() ? 'Issue the first OP token of the day.' : date === today() ? 'Tokens issued by the front desk today will appear here.' : `No OP tokens were issued on ${fmtDate(date)}.`;
@@ -1769,7 +1623,7 @@ function tokenForm(existing) {
       <div class="sheet-head"><button class="icon-btn" data-close aria-label="Close">${I('x')}</button><h2>${existing ? 'Edit OP token' : 'Issue OP token'}</h2><span class="chip">${I('ticket')}${esc(preview)}</span></div>
       <form class="sheet-body" id="tokenForm" novalidate>
         ${existing ? '' : `
-        <label class="search lookup">${I('search')}<input id="lookup" type="search" placeholder="Find returning patient: phone, member ID or name" autocomplete="off"></label>
+        <label class="search lookup">${I('search')}<input id="lookup" type="search" placeholder="Find returning patient: phone or name" autocomplete="off"></label>
         <div id="lookRes" class="look-res"></div>`}
         ${F.section('Patient details')}
         ${F.text('name', 'Patient name', { req: true, icon: 'user', ph: 'Full name', max: 60, value: p.name })}
@@ -1778,8 +1632,6 @@ function tokenForm(existing) {
           ${F.text('phone', 'Phone', { req: true, icon: 'phone', type: 'tel', mode: 'tel', ph: 'Mobile number', max: 15, value: p.phone })}
         </div>
         ${F.seg('gender', 'Gender', GENDERS, { req: true, value: p.gender })}
-        <input type="hidden" name="memberId" value="${esc(p.memberId || '')}">
-        <div class="member-tag ${p.memberId ? '' : 'hidden'}">${I('idCard')}<span>Linked member <b>${esc(p.memberId || '')}</b></span><button type="button" id="unlink">Unlink</button></div>
         ${F.section('Visit')}
         <label class="field"><span class="lbl">Consulting doctor <i>*</i></span>
           <div class="ctl sel">${I('stetho')}<select name="doctorId"><option value="">Any available doctor</option>${docOpts}</select></div><small class="err"></small></label>
@@ -1806,15 +1658,7 @@ function tokenForm(existing) {
   const form = $('#tokenForm', sheet.el);
   liveClear(form);
 
-  const setMember = id => {
-    form.memberId.value = id || '';
-    const tag = $('.member-tag', form);
-    tag.classList.toggle('hidden', !id);
-    if (id) $('b', tag).textContent = id;
-  };
-  $('#unlink', form).onclick = () => setMember('');
-
-  // Returning-patient lookup: members plus anyone who had a token before
+  // Returning-patient lookup: anyone who had a token before
   const look = $('#lookup', form);
   if (look) {
     look.oninput = () => {
@@ -1824,16 +1668,15 @@ function tokenForm(existing) {
       if (q.length < 2) { box.innerHTML = ''; return; }
       const seen = new Set();
       const hits = [];
-      const consider = (name, phone, age, gender, memberId, src) => {
+      const consider = (name, phone, age, gender, src) => {
         const key = `${name.toLowerCase()}|${digits(phone).slice(-10)}`;
         if (seen.has(key)) return;
-        const match = name.toLowerCase().includes(q) || (qd.length >= 3 && digits(phone).includes(qd)) || (memberId && memberId.toLowerCase().includes(q));
+        const match = name.toLowerCase().includes(q) || (qd.length >= 3 && digits(phone).includes(qd));
         if (!match) return;
         seen.add(key);
-        hits.push({ name, phone, age, gender, memberId, src });
+        hits.push({ name, phone, age, gender, src });
       };
-      Store.db.members.forEach(m => consider(m.name, m.phone, age(m.dob), m.gender, m.id, `Member ${m.id}`));
-      [...Store.db.tokens].reverse().forEach(x => consider(x.patient.name, x.patient.phone, x.patient.age, x.patient.gender, x.patient.memberId, `Last visit ${fmtDate(x.date)}`));
+      [...Store.db.tokens].reverse().forEach(x => consider(x.patient.name, x.patient.phone, x.patient.age, x.patient.gender, `Last visit ${fmtDate(x.date)}`));
       box.innerHTML = hits.slice(0, 4).map((h, i) => `<button type="button" class="look-hit" data-i="${i}">${avatar(h.name, 'sm')}<span><b>${esc(h.name)}</b><small>${esc(h.phone)} · ${esc(h.src)}</small></span>${I('plus')}</button>`).join('') ||
         `<div class="look-none">No match. Fill in the details below for a new patient.</div>`;
       $$('.look-hit', box).forEach(b => {
@@ -1843,8 +1686,7 @@ function tokenForm(existing) {
           form.phone.value = h.phone || '';
           if (h.age !== null && h.age !== undefined && h.age !== '') form.age.value = h.age;
           $$('[name="gender"]', form).forEach(r => { r.checked = r.value === h.gender; });
-          setMember(h.memberId);
-          if (h.src.startsWith('Last visit')) $$('[name="visitType"]', form).forEach(r => { r.checked = r.value === 'Follow-up'; });
+          $$('[name="visitType"]', form).forEach(r => { r.checked = r.value === 'Follow-up'; });
           look.value = '';
           box.innerHTML = '';
           $$('.field.invalid', form).forEach(f => f.classList.remove('invalid'));
@@ -1962,7 +1804,6 @@ function tokenDetail(id) {
         <div class="info">
           ${infoRow('user', 'Age / gender', `${p.age} yrs · ${p.gender}`)}
           ${infoRow('phone', 'Phone', p.phone)}
-          ${infoRow('idCard', 'Member', p.memberId)}
           ${infoRow('stetho', 'Doctor', doctorLabel(t.doctorId))}
           ${infoRow('note', 'Visit', [t.visitType, t.complaint].filter(Boolean).join(': '))}
           ${infoRow('activity', 'Vitals', vitals)}
@@ -2051,7 +1892,7 @@ function renderStaffHome() {
     ${queue.length ? `<div class="list">${queue.map(tokenCard).join('')}</div>`
       : emptyState('ticket', 'amber', 'Queue is empty', list.length ? 'Everyone issued a token today has been seen.' : 'No OP tokens issued yet today.')}
     <div class="qa-row" style="margin-top:20px">
-      <button class="qa-tile t-green" id="qaMember"><span class="ic">${I('idCard')}</span><span><b>Register member</b><small>Patients &amp; families</small></span></button>
+      <button class="qa-tile t-green" id="qaFind"><span class="ic">${I('search')}</span><span><b>Find a token</b><small>Name, phone or number</small></span></button>
       <button class="qa-tile t-violet" id="qaTok"><span class="ic">${I('ticket')}</span><span><b>All tokens</b><small>Today's list</small></span></button>
     </div>`;
   $('#issueBtn').onclick = () => tokenForm();
@@ -2060,7 +1901,7 @@ function renderStaffHome() {
   $('#insBtn').onclick = () => go('insights');
   $('#repHome').onclick = () => openReports({ type: 'tokens', preset: 'today' });
   $('#qaTok').onclick = () => go('tokens');
-  $('#qaMember').onclick = () => memberForm();
+  $('#qaFind').onclick = () => { buzz(); openSearch(); };
   $$('.mini button').forEach(b => { b.onclick = () => { S.tokenStatus = b.dataset.st; go('tokens'); }; });
   bindTokenCards($('#page'));
 }
@@ -2140,7 +1981,7 @@ function themeSheet(onChange) {
 /* ---------- Tab: Settings ---------- */
 function renderSettings() {
   const a = S.user;
-  const { admins, staff, members, tokens } = Store.db;
+  const { admins, staff, tokens } = Store.db;
   const roleLine = isStaff() ? `${a.role} · Staff` : `${a.role}${a.title ? ' · ' + a.title : ''}`;
   $('#page').innerHTML = `
     <div class="page-head"><h1>Settings</h1></div>
@@ -2166,7 +2007,7 @@ function renderSettings() {
       ${row('server', 'database', 'green', 'Online data', syncLine())}
       ${isStaff() ? '' : `
       ${row('export', 'download', 'blue', 'Download backup', 'Save or send a copy of all records as a JSON file')}
-      ${row('erase', 'trash', 'red', 'Erase all data', `Delete all accounts, ${staff.length} staff, ${members.length} members, ${tokens.length} tokens for every phone`, true)}`}
+      ${row('erase', 'trash', 'red', 'Erase all data', `Delete all accounts, ${staff.length} staff, ${tokens.length} tokens for every phone`, true)}`}
     </div>
 
     <div class="group">${row('logout', 'logout', 'red', 'Sign out', `Signed in as @${userHandle(a)}`, true)}</div>
@@ -2288,7 +2129,7 @@ function passwordSheet() {
 
 // Where the data lives and when this phone last got the latest copy
 function serverSheet() {
-  const { admins, staff, members, patients, tokens } = Store.db;
+  const { admins, staff, patients, tokens } = Store.db;
   openSheet({
     html: `
       <div class="sheet-head"><h2>Online data</h2><button class="icon-btn" data-close aria-label="Close">${I('x')}</button></div>
@@ -2299,7 +2140,7 @@ function serverSheet() {
           ${infoRow(Conn.state ? 'checkCircle' : 'alert', 'Connection', Conn.state ? 'Connected (green dot in the logo)' : 'Not connected (red dot in the logo). Changes can be made once it reconnects.')}
           ${infoRow('database', 'Server', API_URL.replace(/^https?:\/\//, ''))}
           ${infoRow('clock', 'Last updated', Store.syncedAt ? new Date(Store.syncedAt).toLocaleString() : 'Not yet')}
-          ${isPatient() ? '' : infoRow('users', 'Records', `${admins.length} accounts · ${staff.length} staff · ${members.length} members · ${patients.length} patients · ${tokens.length} OP tokens`)}
+          ${isPatient() ? '' : infoRow('users', 'Records', `${admins.length} accounts · ${staff.length} staff · ${patients.length} patients · ${tokens.length} OP tokens`)}
         </div>
       </div>
       <div class="sheet-foot"><button class="btn primary" id="syncNow">${I('refresh')} Check for changes</button></div>`,
@@ -2340,14 +2181,14 @@ async function exportBackup() {
 
 // Erasing everything needs the signed-in person's password, typed again
 function eraseAll() {
-  const { staff, members, tokens, patients } = Store.db;
+  const { staff, tokens, patients } = Store.db;
   const sheet = openSheet({
     dialog: true,
     html: `
       <button class="icon-btn dlg-x" data-close aria-label="Close">${I('x')}</button>
       <div class="ic red">${I('trash')}</div>
       <h2>Erase all data?</h2>
-      <p>This deletes every account, ${staff.length} staff, ${members.length} members, ${patients.length} patient accounts and ${tokens.length} tokens from the server, for every phone. It cannot be undone. Download a backup first if you may need these records.</p>
+      <p>This deletes every account, ${staff.length} staff, ${patients.length} patient accounts and ${tokens.length} tokens from the server, for every phone. It cannot be undone. Download a backup first if you may need these records.</p>
       <form id="eraseForm" novalidate style="text-align:left">
         ${F.text('password', 'Enter your password to confirm', { icon: 'lock', type: 'password', ph: 'Your password', max: 64, auto: 'current-password' })}
       </form>

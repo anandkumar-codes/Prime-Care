@@ -142,19 +142,6 @@ const REPORTS = [
     },
   },
   {
-    id: 'members', name: 'Member Register', icon: 'idCard', who: 'hospital', dated: true, landscape: true, defaultPreset: 'all',
-    desc: 'Members registered in the period, with plan and contact details',
-    filters: ['plan'],
-    rows: (r, f) => Store.db.members.filter(m => (r.all || inRange(localDate(m.createdAt), r)) && (!f.plan || m.plan === f.plan)).sort((a, b) => a.id.localeCompare(b.id)),
-    build(r, f) {
-      const list = this.rows(r, f);
-      return {
-        summary: [['Members', list.length], ...PLANS.map(p => [p, list.filter(m => m.plan === p).length])],
-        sections: [{ heading: 'Members', head: ['Member ID', 'Name', 'Gender', 'Age', 'Blood', 'Phone', 'Plan', 'Emergency contact', 'Registered', 'By'], body: list.map(m => [m.id, m.name, m.gender || '', age(m.dob) ?? '', m.bloodGroup && m.bloodGroup !== 'Unknown' ? m.bloodGroup : '', m.phone, m.plan, [m.emergencyName, m.emergencyPhone].filter(Boolean).join(' '), fmtDate(m.createdAt), personName(m.createdBy)]) }],
-      };
-    },
-  },
-  {
     id: 'patients', name: 'Patient Accounts', icon: 'user', who: 'admin', dated: true, defaultPreset: 'all',
     desc: 'Patients who registered in the app, with their visit counts',
     rows: r => Store.db.patients.filter(p => r.all || inRange(localDate(p.createdAt), r)).sort((a, b) => a.id.localeCompare(b.id)),
@@ -233,7 +220,6 @@ async function buildPdf(def, range, filters) {
   const filterText = [
     filters.doctor && `Doctor: ${filters.doctor === '-' ? 'Any available doctor' : doctorLabel(filters.doctor)}`,
     filters.status && `Status: ${filters.status}`,
-    filters.plan && `Plan: ${filters.plan}`,
     filters.patientName && `Patient: ${filters.patientName}`,
     filters.staffStatus && `Status: ${filters.staffStatus}`,
   ].filter(Boolean).join('   ·   ');
@@ -387,7 +373,6 @@ function openReports(opts = {}) {
       ${(d.filters || []).length ? F.section('Filters') : ''}
       ${(d.filters || []).includes('doctor') ? `<label class="field"><span class="lbl">Doctor</span><div class="ctl sel">${I('stetho')}<select data-f="doctor">${docOpts.map(([v, l]) => `<option value="${v}" ${v === (st.filters.doctor || '') ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div></label>` : ''}
       ${(d.filters || []).includes('status') ? `<label class="field"><span class="lbl">Status</span><div class="ctl sel">${I('activity')}<select data-f="status"><option value="">All statuses</option>${TOKEN_STATUS.map(s => `<option ${s === st.filters.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div></label>` : ''}
-      ${(d.filters || []).includes('plan') ? `<label class="field"><span class="lbl">Plan</span><div class="ctl sel">${I('award')}<select data-f="plan"><option value="">All plans</option>${PLANS.map(s => `<option ${s === st.filters.plan ? 'selected' : ''}>${s}</option>`).join('')}</select></div></label>` : ''}
       ${(d.filters || []).includes('staffStatus') ? `<label class="field"><span class="lbl">Status</span><div class="ctl sel">${I('activity')}<select data-f="staffStatus"><option value="">All staff</option>${STAFF_STATUS.map(s => `<option ${s === st.filters.staffStatus ? 'selected' : ''}>${s}</option>`).join('')}</select></div></label>` : ''}
       <div class="rp-preview ${count ? '' : 'empty'}">${I(count ? 'checkCircle' : 'info')}<span>${count ? `<b>${count}</b> record${count === 1 ? '' : 's'} will be included` : 'No records match. The report will still be created, showing that nothing was recorded.'}</span></div>
       <p class="rp-note">${I('note')} Saved as a PDF in Documents/PrimeCare/Reports, with the hospital logo, a page border and page numbers on every page.</p>`;
