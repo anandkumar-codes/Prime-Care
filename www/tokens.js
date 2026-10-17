@@ -170,7 +170,7 @@ function viewToken(id) {
       <div class="sheet-head"><button class="icon-btn" data-close aria-label="Close">${I('x')}</button><h2>Token ${esc(t.id)}</h2></div>
       <div class="sheet-body tk-view-body">
         <div class="ticket">
-          <div class="tk-top">${LOGO_H}<div><b>OP TOKEN</b><small>Out-patient consultation</small></div></div>
+          <div class="tk-top">${LOGO_PRINT}<div><b>OP TOKEN</b><small>Out-patient consultation</small></div></div>
           <div class="tk-num"><small>TOKEN NUMBER</small><b>${String(t.seq).padStart(3, '0')}</b><span>${esc(t.id)}</span></div>
           <div class="tk-when"><div><small>DATE</small><b>${fmtDate(t.date)}</b></div><div><small>TIME</small><b>${fmtTime(t.issuedAt)}</b></div></div>
           <div class="tk-rows">${tokenRows(t).filter(r => r[0] !== 'Date' && r[0] !== 'Time issued').map(([k, v]) => `<div><span>${esc(k)}</span><b class="${k === 'Status' ? 'st-' + st[1] : ''}">${esc(v)}</b></div>`).join('')}</div>

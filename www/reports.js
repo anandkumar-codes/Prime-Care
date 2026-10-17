@@ -200,7 +200,7 @@ let logoCache = null;
 function logoPng() {
   if (logoCache) return logoCache;
   logoCache = new Promise(resolve => {
-    const svg = LOGO_H.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="320" ');
+    const svg = LOGO_PRINT.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="320" ');
     const img = new Image();
     img.onload = () => {
       const c = document.createElement('canvas');

@@ -5,7 +5,7 @@
 const Cap = window.Capacitor;
 const NATIVE = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
 const Plug = (Cap && Cap.Plugins) || {};
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.7.0';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -111,7 +111,19 @@ const LOGO_H = `<svg class="logo-h" viewBox="120 120 1420 320" role="img" aria-l
   <line x1="560" y1="150" x2="560" y2="410" stroke="#e2e8f0" stroke-width="6"/>
   <text x="620" y="290" font-family="Segoe UI, Roboto, sans-serif" font-size="150" font-weight="800" textLength="880" lengthAdjust="spacingAndGlyphs"><tspan class="wm-prime" fill="#1e3a8a">PRIME</tspan> <tspan fill="#10b981">CARE</tspan></text>
   <text x="626" y="370" font-family="Segoe UI, Roboto, sans-serif" font-size="50" font-weight="600" fill="#64748b" textLength="560" lengthAdjust="spacing">HOSPITAL</text>
+  <circle class="conn-dot" cx="1463" cy="352" r="20"/>
 </svg>`;
+// The dot under the E of CARE (on the HOSPITAL line) shows the server connection: green connected, red not (it pulses while the first attempt runs).
+// Printed logos (PDF reports and token slips) leave it out.
+const LOGO_PRINT = LOGO_H.replace(/\s*<circle class="conn-dot"[^>]*\/>/, '');
+const Conn = {
+  state: null,
+  set(on) {
+    if (this.state === on) return;
+    this.state = on;
+    document.documentElement.dataset.conn = on ? 'on' : 'off';
+  },
+};
 
 /* ---------- Reference data ---------- */
 const STAFF_ROLES = ['Nurse', 'Receptionist', 'Lab Technician', 'Pharmacist', 'Radiographer', 'Ward Assistant', 'Housekeeping', 'Accountant', 'Security', 'Other'];
@@ -136,12 +148,9 @@ class ApiError extends Error {
 const OFFLINE_MSG = 'No internet connection. Check your connection and try again.';
 const Api = {
   token: null,
-  // Called with true when an answer is slow (Render's free plan sleeps when idle) and false when it arrives
-  onSlow: null,
   async request(method, path, body, { timeout = 30000 } = {}) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeout);
-    const slow = setTimeout(() => this.onSlow && this.onSlow(true), 4000);
     const headers = { 'Content-Type': 'application/json' };
     if (this.token) headers.Authorization = `Bearer ${this.token}`;
     // Ask only for what changed since the copy this phone already has
@@ -150,11 +159,13 @@ const Api = {
     try {
       res = await fetch(API_URL + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: ctl.signal });
     } catch (e) {
+      Conn.set(false);
       throw new ApiError(e.name === 'AbortError' ? 'The server is taking too long to answer. Please try again.' : OFFLINE_MSG, 0, { offline: true });
     } finally {
-      clearTimeout(timer); clearTimeout(slow);
-      if (this.onSlow) this.onSlow(false);
+      clearTimeout(timer);
     }
+    // Any answer from Prime Care counts as connected; Render's own "service unavailable" pages do not
+    Conn.set(!(res.status >= 502 && res.status <= 504));
     let data = {};
     try { data = await res.json(); } catch (e) { /* empty or non-JSON body */ }
     const renewed = res.headers.get('X-Session');
@@ -208,17 +219,41 @@ const Store = {
     if (S.user) {
       const me = this.db[{ admin: 'admins', staff: 'staff', patient: 'patients' }[S.kind]].find(x => x.id === S.user.id);
       if (me) S.user = me;
+      this.saveCache();
     }
     return s.full ? JSON.stringify(this.db) !== before : changed;
   },
-  // Whether the hospital still needs its first doctor/manager account
-  async status() {
-    const r = await Api.get('/api/status', { timeout: 75000 });
+  // Whether the hospital still needs its first doctor/manager account (remembered for the next launch)
+  async status(timeout = 75000) {
+    const r = await Api.get('/api/status', { timeout });
     this.setupNeeded = !!r.setupNeeded;
+    call('Preferences', 'set', { key: 'setupNeeded', value: this.setupNeeded ? '1' : '0' });
     return r;
   },
   // Loads (or refreshes) the signed-in person's data
   load(timeout = 75000) { return Api.get('/api/state', { timeout }); },
+
+  /* A copy of the signed-in person's data in the app's private storage, so the app opens straight
+     away on the next launch and shows it until the server answers. Removed on sign-out. */
+  CACHE: 'primecare/cache.json',
+  cacheTimer: null,
+  saveCache() {
+    clearTimeout(this.cacheTimer);
+    this.cacheTimer = setTimeout(() => {
+      if (!S.user) return;
+      const data = JSON.stringify({ kind: S.kind, user: S.user, db: this.db, rev: this.rev, epoch: this.epoch, syncedAt: this.syncedAt });
+      call('Filesystem', 'writeFile', { path: this.CACHE, directory: 'DATA', encoding: 'utf8', data, recursive: true });
+    }, 1500);
+  },
+  async readCache() {
+    // Never hold up opening the app on storage: no answer within 2 seconds counts as no copy
+    const r = await Promise.race([call('Filesystem', 'readFile', { path: this.CACHE, directory: 'DATA', encoding: 'utf8' }), wait(2000)]);
+    try { return r && r.data ? JSON.parse(r.data) : null; } catch (e) { return null; }
+  },
+  clearCache() {
+    clearTimeout(this.cacheTimer);
+    return call('Filesystem', 'deleteFile', { path: this.CACHE, directory: 'DATA' });
+  },
 };
 Store.reset();
 
@@ -264,7 +299,7 @@ async function startSession(r) {
 }
 // Clears the signed-in person and their data from this phone
 async function endSession() {
-  Live.stop();
+  await Store.clearCache();
   S.user = null;
   S.kind = null;
   S.tab = 'home';
@@ -304,21 +339,27 @@ async function attempt(btn, fn, form) {
   try { return await fn(); } catch (e) { showError(e, form); return undefined; } finally { if (btn) busy(btn, false); }
 }
 
-/* Keeps the screen up to date with changes made on other phones */
+/* Keeps the screen up to date with changes made on other phones, and keeps checking the
+   connection (which colours the dot in the logo) whether or not anyone is signed in */
 const Live = {
   timer: null,
   busy: false,
   start() { this.stop(); this.timer = setInterval(() => this.tick(), 15000); },
   stop() { clearInterval(this.timer); this.timer = null; },
   async tick() {
-    if (!S.user || this.busy || document.hidden || S.auth === 'lock') return;
+    if (this.busy || document.hidden) return;
     this.busy = true;
     try {
-      const r = await Store.load(20000);
-      // Redraw only when something changed, and never while the person is typing in a search box
-      const typing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#page input');
-      if (r.changed && !typing) refresh(true);
-    } catch (e) { /* offline for a moment: try again on the next tick */ }
+      if (!S.user) {
+        await Store.status(20000);
+        syncAuthScreen();
+      } else {
+        const r = await Store.load(20000);
+        // Redraw only when something changed, and never while the person is typing in a search box
+        const typing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#page input');
+        if (r.changed && !typing) refresh(true);
+      }
+    } catch (e) { /* not connected for now: the dot is red, and the next tick tries again */ }
     this.busy = false;
   },
 };
@@ -560,6 +601,7 @@ const adminBody = v => ({ role: v.role || 'Doctor', name: v.name, title: v.title
 
 /* ---------- Screen: first-run setup ---------- */
 function renderSetup() {
+  S.auth = 'setup';
   $('#screen').innerHTML = `
     <div class="auth">
       <div class="auth-top">${LOGO_H}</div>
@@ -1850,7 +1892,7 @@ function tokenSlip(t) {
     html: `
       <div class="sheet-body">
         <div class="slip">
-          <div class="slip-top">${LOGO_H}</div>
+          <div class="slip-top">${LOGO_PRINT}</div>
           <div class="slip-label">OP TOKEN</div>
           <div class="slip-seq">${String(t.seq).padStart(3, '0')}</div>
           <div class="slip-no">${esc(t.id)}</div>
@@ -2254,6 +2296,7 @@ function serverSheet() {
         <p class="muted" style="margin-bottom:14px;font-size:14px">Every change is saved on the Prime Care server straight away, so every phone signed in to the hospital sees the same records. This phone checks for changes every 15 seconds, and when you pull down on a screen.</p>
         <div class="legend"><span><i class="lg-add"></i>Added</span><span><i class="lg-update"></i>Updated</span><span><i class="lg-delete"></i>Deleted</span></div>
         <div class="info">
+          ${infoRow(Conn.state ? 'checkCircle' : 'alert', 'Connection', Conn.state ? 'Connected (green dot in the logo)' : 'Not connected (red dot in the logo). Changes can be made once it reconnects.')}
           ${infoRow('database', 'Server', API_URL.replace(/^https?:\/\//, ''))}
           ${infoRow('clock', 'Last updated', Store.syncedAt ? new Date(Store.syncedAt).toLocaleString() : 'Not yet')}
           ${isPatient() ? '' : infoRow('users', 'Records', `${admins.length} accounts · ${staff.length} staff · ${members.length} members · ${patients.length} patients · ${tokens.length} OP tokens`)}
@@ -2370,36 +2413,66 @@ function playLaunch() {
   setTimeout(() => L.classList.add('play'), NATIVE ? 380 : 30);
 }
 
-/* ---------- Connecting to the server ---------- */
-// Reaches the server and, if this phone has a saved session, loads that person's data.
-// Throws when the server can't be reached; a session the server no longer accepts is just dropped.
-async function connect() {
-  await Store.status();
+/* ---------- Opening the app ----------
+   The app opens straight away from what this phone already knows (the saved session and its copy
+   of the data) and connects to the server in the background. The dot after HOSPITAL in the logo
+   turns green once it is connected. */
+// Picks up the saved session and data copy: 'none' (signed out), 'cached' (ready to show),
+// or 'token' (signed in, but no copy yet, as on the first launch after updating)
+async function restore() {
   // Sign-ins from the earlier on-phone version can't be used with the server
   call('Preferences', 'remove', { key: 'session' });
+  const sn = await call('Preferences', 'get', { key: 'setupNeeded' });
+  Store.setupNeeded = !!(sn && sn.value === '1');
   const sess = await Session.get();
-  if (!sess || !sess.token) return;
+  if (!sess || !sess.token) return 'none';
   Api.token = sess.token;
+  const c = await Store.readCache();
+  if (!c || c.kind !== sess.kind || !c.user || c.user.id !== sess.id) return 'token';
+  Store.db = { ...Store.blank(), ...c.db };
+  Store.rev = c.rev || 0;
+  Store.epoch = c.epoch || '';
+  Store.syncedAt = c.syncedAt || null;
+  S.kind = c.kind;
+  S.user = c.user;
+  S.tab = c.kind === 'patient' ? 'phome' : 'home';
+  S.tokenDate = today();
+  return 'cached';
+}
+// Reaches the server: checks whether the hospital is set up and, for a signed-in person, loads
+// their latest data. Throws when the server can't be reached. A session the server no longer
+// accepts ends here (with a message, if the person was already on screen).
+async function connect() {
+  await Store.status();
+  if (!Api.token) return null;
   try {
     const r = await Store.load();
+    if (!S.user || S.user.id !== r.user.id) {
+      S.tab = r.kind === 'patient' ? 'phome' : 'home';
+      S.tokenDate = today();
+    }
     S.kind = r.kind;
     S.user = r.user;
-    S.tab = r.kind === 'patient' ? 'phome' : 'home';
-    S.tokenDate = today();
-    Live.start();
+    Store.saveCache();
+    return r;
   } catch (e) {
-    if (e.status === 401 || e.status === 403) await endSession();
-    else throw e;
+    if (e.status === 401 || e.status === 403) { if (S.user) await sessionEnded(e.message); else await endSession(); return null; }
+    throw e;
   }
 }
-// What to show once connected: the tour on first launch, the fingerprint lock, or the right screen
+// When signed out, keeps the first screen right once the server says whether setup is still needed
+function syncAuthScreen() {
+  if (S.user || sheets.length || !['landing', 'setup'].includes(S.auth)) return;
+  if ((S.auth === 'setup') !== Store.setupNeeded) route();
+}
+// The first screen: the tour on first launch, the fingerprint lock, or the right screen
 async function enterApp() {
   const seen = await call('Preferences', 'get', { key: 'onboarded' });
   if (!(seen && seen.value === '1')) renderTour(route);
   else if (S.user && Bio.enabledFor(S.kind, S.user.id)) renderLock();
   else route();
 }
-// Prime Care works online only, so without a connection it waits here for a retry
+// Only for a phone that is signed in but has no copy of the data yet, and can't reach the server
 function renderOffline(err) {
   S.auth = 'offline';
   $('#screen').innerHTML = `
@@ -2409,7 +2482,7 @@ function renderOffline(err) {
         <div class="ok-badge off">${I('alert')}</div>
         <h1>Can't reach Prime Care</h1>
         <p id="offMsg">${esc(err.message || OFFLINE_MSG)}</p>
-        <p class="small">Prime Care needs an internet connection. When the server has been idle for a while, the first connection can take up to a minute.</p>
+        <p class="small">Your records are loaded from the Prime Care server the first time you open this version. Check the internet connection and try again.</p>
         <button class="btn primary block" id="retry">${I('refresh')} Try again</button>
       </div>
       <div class="auth-foot">Prime Care Hospital · v${APP_VERSION}</div>
@@ -2440,13 +2513,24 @@ async function boot() {
   await Sound.init();
   await Bio.init();
   const minShow = wait(NATIVE ? 2850 : 2500);
-  // A note under the logo if the server is slow to wake up
-  Api.onSlow = on => { const n = $('#launchNote'); if (n) n.classList.toggle('show', on); };
-  let offline = null;
-  try { await connect(); } catch (e) { offline = e; }
-  Api.onSlow = null;
-  await minShow;
-  if (offline) renderOffline(offline); else await enterApp();
+  const known = await restore();
+  // Connect in the background; checks repeat every 15 seconds after that
+  const online = connect().catch(e => e);
+  Live.start();
+  if (known === 'token') {
+    // Signed in but nothing to show yet: wait for the server this once
+    const r = await online;
+    await minShow;
+    if (r instanceof Error) renderOffline(r); else await enterApp();
+  } else {
+    await minShow;
+    await enterApp();
+    online.then(r => {
+      if (r instanceof Error) return;
+      if (r && r.changed) refresh(true);
+      syncAuthScreen();
+    });
+  }
   $('#launch').classList.add('done');
   setTimeout(() => $('#launch') && $('#launch').remove(), 700);
 }
